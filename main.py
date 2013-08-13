@@ -312,4 +312,4 @@ print 'here', res.count(), list(res)
 # logging.debug('*** QUERYING ***\n')
 # logging.debug(('exact match', list(Tag.find(count='one@two.thr'))))
 # logging.debug(('matcher from value', list(Tag.find(count__startswith='one'))))
-# logging.debug(('matcher from operator', list(Tag.find(created__le=datetime.datetime.utcnow()))))
+# logging.debug(('matcher from operator', list(Tag.find(created__le=datetime.datetime.utcnow()))))hi
