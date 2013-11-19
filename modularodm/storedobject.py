@@ -1,11 +1,13 @@
+# -*- coding: utf-8 -*-
 import logging
 import warnings
 
-from fields import Field, ListField, ForeignField, ForeignList
+from modularodm import exceptions
+from fields import Field, ListField, ForeignList
 from .storage import Storage
 from .query import QueryBase, RawQuery
 from .frozen import FrozenDict
-from .exceptions import ModularOdmException
+
 
 class ContextLogger(object):
 
@@ -88,8 +90,9 @@ def has_storage(func):
         me = args[0]
         if not hasattr(me, '_storage') or \
                 not me._storage:
-            raise Exception('No storage backend attached to schema <{}>.'.format(
-                me._name.upper())
+            raise exceptions.ImproperConfigurationError(
+                'No storage backend attached to schema <{0}>.'
+                    .format(me._name.upper())
             )
         return func(*args, **kwargs)
     return wrapped
@@ -131,7 +134,8 @@ class ObjectMeta(type):
                     cls._primary_name = key
                     cls._primary_type = value.data_type
                 else:
-                    raise Exception('Multiple primary keys are not supported.')
+                    raise AttributeError(
+                        'Multiple primary keys are not supported.')
 
             # Wrap in list
             if value._list:
@@ -160,7 +164,9 @@ class ObjectMeta(type):
                     cls._primary_name = '_id'
                     cls._primary_type = cls._fields['_id'].data_type
                 else:
-                    raise Exception('Schemas must either define a field named _id or specify exactly one field as primary.')
+                    raise AttributeError(
+                        'Schemas must either define a field named _id or '
+                        'specify exactly one field as primary.')
 
         # Register
         cls.register_collection()
@@ -343,7 +349,7 @@ class StoredObject(object):
 
     @_backrefs.setter
     def _backrefs(self, _):
-        raise ModularOdmException('Cannot modify _backrefs.')
+        raise exceptions.ModularOdmException('Cannot modify _backrefs.')
 
     @property
     def _backrefs_flat(self):
@@ -363,7 +369,7 @@ class StoredObject(object):
         backref_value_primary_key = backref_value._primary_key
 
         if backref_value_primary_key is None:
-            raise Exception('backref object\'s primary key must be saved first')
+            raise exceptions.DatabaseError('backref object\'s primary key must be saved first')
 
         if backref_key not in self.__backrefs:
             self.__backrefs[backref_key] = {}
@@ -382,7 +388,7 @@ class StoredObject(object):
     def set_storage(cls, storage):
 
         if not isinstance(storage, Storage):
-            raise Exception('Argument to set_storage must be an instance of Storage.')
+            raise TypeError('Argument to set_storage must be an instance of Storage.')
         if not hasattr(cls, '_storage'):
             cls._storage = []
 
@@ -491,7 +497,7 @@ class StoredObject(object):
         try:
             key = cast_type(key)
         except:
-            raise Exception(
+            raise TypeError(
                 'Invalid key type: {key}, {type}, {ptype}.'.format(
                     key=key, type=type(key), ptype=cast_type
                 )
@@ -523,7 +529,7 @@ class StoredObject(object):
     @classmethod
     def _must_be_loaded(cls, value):
         if value is not None and not value._is_loaded:
-            raise Exception('Record must be loaded.')
+            raise exceptions.DatabaseError('Record must be loaded.')
 
     @has_storage
     @log_storage
@@ -538,7 +544,7 @@ class StoredObject(object):
     def save(self, force=False):
 
         if self._detached:
-            raise Exception('Cannot save detached object.')
+            raise exceptions.DatabaseError('Cannot save detached object.')
 
         for field_name, field_object in self._fields.items():
             if hasattr(field_object, 'on_before_save'):
@@ -638,8 +644,8 @@ class StoredObject(object):
             try:
                 base_class = self.get_collection(parent_schema_name)
             except KeyError:
-                raise ModularOdmException(
-                    'Unknown schema <{}>'.format(
+                raise exceptions.ModularOdmException(
+                    'Unknown schema <{0}>'.format(
                         parent_schema_name
                     )
                 )
