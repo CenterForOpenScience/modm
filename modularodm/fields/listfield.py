@@ -1,4 +1,4 @@
-from ..fields import Field, ForeignField
+from ..fields import Field
 from ..validators import validate_list
 import copy
 
@@ -14,17 +14,21 @@ class ListField(Field):
 
         # ListField is a list of the following (e.g., ForeignFields)
         self._field_instance = field_instance
-        self._is_foreign = isinstance(field_instance, ForeignField)
+        self._is_foreign = field_instance._is_foreign
+        self._uniform_translator = field_instance._uniform_translator
+        #self._is_foreign = isinstance(field_instance, ForeignField)
 
         # Descriptor data is this type of list
         self._list_class = self._field_instance._list_class
 
         # Descriptor data is this type of list object, instantiated as our
         # default
-        if self._default and not hasattr(self._default, '__iter__'):
-            raise Exception(
-                'Default value for list fields must be a list; received <{0}>'.format(
-                    repr(self._field_instance._default)
+        if (self._default
+            and not hasattr(self._default, '__iter__')
+            or isinstance(self._default, dict)):
+            raise TypeError(
+                'Default value for list fields must be a list; received {0}'.format(
+                    type(self._default)
                 )
             )
 
@@ -83,21 +87,27 @@ class ListField(Field):
     def to_storage(self, value, translator=None):
         translator = translator or self._schema_class._translator
         if value:
-            if hasattr(value, '_to_primary_keys'):
-                value = value._to_primary_keys()
-            method = self._get_translate_func(translator, 'to')
-            if method is not None or translator.null_value is not None:
-                value = [
-                    translator.null_value if item is None
-                    else
-                    item if method is None
-                    else
-                    method(item)
+            if hasattr(value, '_to_data'):
+                value = value._to_data()
+            if self._uniform_translator:
+                method = self._get_translate_func(translator, 'to')
+                if method is not None or translator.null_value is not None:
+                    value = [
+                        translator.null_value if item is None
+                        else
+                        item if method is None
+                        else
+                        method(item)
+                        for item in value
+                    ]
+                if self._field_instance.mutable:
+                    return copy.deepcopy(value)
+                return copy.copy(value)
+            else:
+                return [
+                    self._field_instance.to_storage(item)
                     for item in value
                 ]
-            if self._field_instance.mutable:
-                return copy.deepcopy(value)
-            return copy.copy(value)
         return []
 
     def from_storage(self, value, translator=None):
