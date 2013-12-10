@@ -26,7 +26,8 @@ class TestRedisStorage(unittest.TestCase):
     DB_PORT = os.environ.get("REDIS_PORT", 6379)
 
     client = redis.Redis(host=DB_HOST, port=DB_PORT)
-    Person.set_storage(RedisStorage(client=client, collection='people'))
+    store = RedisStorage(client=client, collection='people')
+    Person.set_storage(store)
 
     def tearDown(self):
         self.client.flushall()
@@ -83,7 +84,12 @@ class TestRedisStorage(unittest.TestCase):
                     lambda: Person.find_one(Q("name", "eq", "Foo")))
 
     def test_repr(self):
-        assert_equal(repr(Person._storage[0]), "<RedisStorage: 'people'>")
+        assert_equal(repr(self.store), "<RedisStorage: 'people'>")
+
+
+    def test_get_key(self):
+        assert_equal(self.store.get_key('abc123'), "people:abc123")
+
 
 if __name__ == '__main__':
     unittest.main()

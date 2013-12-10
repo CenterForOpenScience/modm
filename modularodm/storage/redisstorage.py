@@ -56,11 +56,15 @@ class RedisStorage(Storage):
 
     def get(self, primary_name, key):
         """Get a record as a dictionary."""
-        record = self.client.hgetall("{col}:{pk}".format(col=self.collection, pk=key))
+        record = self.client.hgetall(self.get_key(key))
         return record
 
     def get_by_id(self, id):
         return self.get(None, id)
+
+    def get_key(self, pk):
+        """Get the redis key for a given primary key."""
+        return u"{0}:{1}".format(self.collection, pk)
 
     def insert(self, primary_name, key, value):
         '''Insert a new record.
@@ -75,8 +79,7 @@ class RedisStorage(Storage):
         # Add to set of primary keys
         self.client.sadd(self._key_set, key)
         # <collection>:<primary_key> => Hash of attribute:value pairs
-        self.client.hmset("{col}:{pk}".format(col=self.collection, pk=key),
-                        value)
+        self.client.hmset(self.get_key(key), value)
         return None
 
     def _match(self, name, query):
@@ -117,7 +120,7 @@ class RedisStorage(Storage):
         else:
             for primary_key in self.client.smembers(self._key_set):
                 # The hash name
-                name = "{col}:{pk}".format(col=self.collection, pk=primary_key)
+                name = self.get_key(primary_key)
                 if self._match(name, query):
                     if by_pk:
                         yield primary_key
