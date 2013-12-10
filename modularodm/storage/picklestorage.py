@@ -201,10 +201,10 @@ class PickleStorage(Storage):
         else:
             raise TypeError('Query must be a QueryGroup or Query object.')
 
-    def find(self, query=None, **kwargs):
+    def find(self, query=None, by_pk=False, **kwargs):
         """
         Return generator over query results. Takes optional
-        by_pk keyword argument; if true, return keys rather than
+        by_pk keyword argument; if True, return keys rather than
         values.
 
         """
@@ -214,7 +214,7 @@ class PickleStorage(Storage):
         else:
             for key, value in self.store.items():
                 if self._match(value, query):
-                    if kwargs.get('by_pk'):
+                    if by_pk:
                         yield key
                     else:
                         yield value
