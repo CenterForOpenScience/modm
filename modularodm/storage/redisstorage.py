@@ -124,3 +124,6 @@ class RedisStorage(Storage):
                     else:
                         record = self.get_by_id(primary_key)
                         yield record
+
+    def __repr__(self):
+        return "<RedisStorage: {0!r}>".format(self.collection)

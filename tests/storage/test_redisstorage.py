@@ -9,6 +9,7 @@ import redis
 from modularodm import StoredObject, fields
 from modularodm.storage import RedisStorage
 from modularodm.query.querydialect import DefaultQueryDialect as Q
+from modularodm import exceptions
 
 class Person(StoredObject):
     _meta = {"optimistic": True}
@@ -25,9 +26,7 @@ class TestRedisStorage(unittest.TestCase):
     DB_PORT = os.environ.get("REDIS_PORT", 6379)
 
     client = redis.Redis(host=DB_HOST, port=DB_PORT)
-
-    def setUp(self):
-        Person.set_storage(RedisStorage(client=self.client, collection='people'))
+    Person.set_storage(RedisStorage(client=client, collection='people'))
 
     def tearDown(self):
         self.client.flushall()
@@ -50,7 +49,6 @@ class TestRedisStorage(unittest.TestCase):
             p.save()
         all_people = Person.find()
         assert_equal(len(all_people), 5)
-        assert False
         assert_equal(all_people[0].name, 'foo')
 
     def test_find(self):
@@ -61,6 +59,31 @@ class TestRedisStorage(unittest.TestCase):
         retrieved = Person.find(Q("name", "eq", "Foo"))
         assert_in(p, retrieved)
         assert_not_in(p2, retrieved)
+
+    def test_find_one(self):
+        p = Person(name="Foo")
+        p.save()
+        p2 = Person(name="Bar")
+        p2.save()
+        retrieved = Person.find_one(Q("name", "eq", "Foo"))
+        assert_equal(p, retrieved)
+
+    def test_find_one_raises_error_if_no_records_found(self):
+        p = Person(name="Foo")
+        p.save()
+        assert_raises(exceptions.NoResultsFound,
+            lambda: Person.find_one(Q("name", "eq", "Bar")))
+
+    def test_find_one_raises_error_if_multiple_records_found(self):
+        p = Person(name="Foo")
+        p.save()
+        p2 = Person(name="Foo")
+        p2.save()
+        assert_raises(exceptions.MultipleResultsFound,
+                    lambda: Person.find_one(Q("name", "eq", "Foo")))
+
+    def test_repr(self):
+        assert_equal(repr(Person._storage[0]), "<RedisStorage: 'people'>")
 
 if __name__ == '__main__':
     unittest.main()
