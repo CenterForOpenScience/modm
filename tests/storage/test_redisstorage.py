@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import os
+import random
 import unittest
 from nose.tools import *  # PEP8 asserts
 
@@ -11,10 +12,13 @@ from modularodm.storage import RedisStorage
 from modularodm.query.querydialect import DefaultQueryDialect as Q
 from modularodm import exceptions
 
+random.seed(1)
+
 class Person(StoredObject):
     _meta = {"optimistic": True}
     _id = fields.StringField(primary=True, index=True)
     name = fields.StringField(required=True)
+    age = fields.IntegerField(required=False)
 
     def __repr__(self):
         return "<Person: {0}>".format(self.name)
@@ -29,14 +33,32 @@ class TestRedisStorage(unittest.TestCase):
     store = RedisStorage(client=client, collection='people')
     Person.set_storage(store)
 
+    def setUp(self):
+        self.p1 = Person(name="Foo")
+        self.p1.save()
+        self.p2 = Person(name="Bar")
+        self.p2.save()
+        self.p3 = Person(name="Baz")
+        self.p3.save()
+
     def tearDown(self):
         self.client.flushall()
 
     def test_insert(self):
-        p = Person(name="Foo")
+        self.store.insert("_id", "abc123", {"name": "Steve", "age": 23})
+        # Sets key => hash of attributes
+        name = self.client.hget("people:abc123", "name")
+        assert_equal(name, "Steve")
+        age = int(self.client.hget("people:abc123", "age"))
+        assert_equal(age, 23)
+
+    def test_create_stored_object(self):
+        p = Person(name="Foo", age=23)
         p.save()
         # has an _id
         assert_true(p._id)
+        assert_equal(p.name, "Foo")
+        assert_equal(p.age, 23)
 
     def test_load(self):
         p = Person(name="Foo")
@@ -45,6 +67,7 @@ class TestRedisStorage(unittest.TestCase):
         assert_equal(p, retrieved)
 
     def test_find_all(self):
+        self.client.flushall()
         for i in range(5):
             p = Person(name="foo".format(i))
             p.save()
@@ -53,29 +76,30 @@ class TestRedisStorage(unittest.TestCase):
         assert_equal(all_people[0].name, 'foo')
 
     def test_find(self):
-        p = Person(name="Foo")
-        p.save()
-        p2 = Person(name="Bar")
-        p2.save()
         retrieved = Person.find(Q("name", "eq", "Foo"))
-        assert_in(p, retrieved)
-        assert_not_in(p2, retrieved)
+        assert_in(self.p1, retrieved)
+        assert_not_in(self.p2, retrieved)
+
+    def test_find_by_pk(self):
+        pks = list(self.store.find(by_pk=True))
+        for each in Person.find():
+            assert_in(each._primary_key, pks)
+
+        pks = list(self.store.find(Q("name", "eq", self.p1.name), by_pk=True))
+        assert_in(self.p1._primary_key, pks)
 
     def test_find_one(self):
-        p = Person(name="Foo")
-        p.save()
-        p2 = Person(name="Bar")
-        p2.save()
         retrieved = Person.find_one(Q("name", "eq", "Foo"))
-        assert_equal(p, retrieved)
+        assert_equal(self.p1, retrieved)
 
     def test_find_one_raises_error_if_no_records_found(self):
         p = Person(name="Foo")
         p.save()
         assert_raises(exceptions.NoResultsFound,
-            lambda: Person.find_one(Q("name", "eq", "Bar")))
+            lambda: Person.find_one(Q("name", "eq", "notfound")))
 
     def test_find_one_raises_error_if_multiple_records_found(self):
+        self.client.flushall()
         p = Person(name="Foo")
         p.save()
         p2 = Person(name="Foo")
@@ -86,10 +110,23 @@ class TestRedisStorage(unittest.TestCase):
     def test_repr(self):
         assert_equal(repr(self.store), "<RedisStorage: 'people'>")
 
-
     def test_get_key(self):
         assert_equal(self.store.get_key('abc123'), "people:abc123")
 
+    def test_remove(self):
+        all_people = list(Person.find())
+        assert_in(self.p1, all_people)
+        Person.remove_one(self.p1._primary_key)
+        all_people = list(Person.find())
+        assert_not_in(self.p1, all_people)
+        # Keys were removed
+        assert_not_in(self.p1._primary_key, self.store.get_key_set())
+        redis_key = self.store.get_key(self.p1._primary_key)
+        assert_not_in(redis_key, self.client.keys())
+
+    def test_get_key_set(self):
+        key_set = self.client.smembers("people_keys")
+        assert_equal(self.store.get_key_set(), key_set)
 
 if __name__ == '__main__':
     unittest.main()

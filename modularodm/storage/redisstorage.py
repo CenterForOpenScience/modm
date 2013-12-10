@@ -54,17 +54,25 @@ class RedisStorage(Storage):
         #: Name of set that stores the primary keys for this collection
         self._key_set = "{col}_keys".format(col=self.collection)
 
+    def get_key_set(self):
+        """Return the set of primary keys from the store."""
+        return self.client.smembers(self._key_set)
+
+    def get_key(self, pk):
+        """Get the redis key for a given primary key."""
+        return u"{0}:{1}".format(self.collection, pk)
+
     def get(self, primary_name, key):
-        """Get a record as a dictionary."""
+        """Get a record as a dictionary.
+
+        :param primary_name: The name of the primary key.
+        :param key: The value of the primary key
+        """
         record = self.client.hgetall(self.get_key(key))
         return record
 
     def get_by_id(self, id):
         return self.get(None, id)
-
-    def get_key(self, pk):
-        """Get the redis key for a given primary key."""
-        return u"{0}:{1}".format(self.collection, pk)
 
     def insert(self, primary_name, key, value):
         '''Insert a new record.
@@ -115,10 +123,13 @@ class RedisStorage(Storage):
         """
         if query is None:
             # Yield every object in the collection
-            for primary_key in self.client.smembers(self._key_set):
+            for primary_key in self.get_key_set():
+                print(primary_key)
+                if by_pk:
+                    yield primary_key
                 yield self.get_by_id(primary_key)
         else:
-            for primary_key in self.client.smembers(self._key_set):
+            for primary_key in self.get_key_set():
                 # The hash name
                 name = self.get_key(primary_key)
                 if self._match(name, query):
@@ -127,6 +138,35 @@ class RedisStorage(Storage):
                     else:
                         record = self.get_by_id(primary_key)
                         yield record
+
+    def _remove_from_key_set(self, *keys):
+        """Remove primary keys from key set.
+
+        Redis doesn't support removing arbitrary values from a set
+        so overwrite the key_set with the difference betwen the
+        current key_set and the set of keys to remove.
+
+        :param keys: The primary keys to remove
+        """
+        tmp_name = "__modm_tmp__"
+        self.client.sadd(tmp_name, *keys)
+        self.client.sdiffstore(self._key_set, self._key_set, tmp_name)
+        self.client.delete(tmp_name)
+        return None
+
+    def remove(self, *query):
+        # Iterator of primary keys
+        keys_to_remove = list(self.find(*query, by_pk=True))
+        # List of redis keys
+        redis_keys = [self.get_key(key) for key in keys_to_remove]
+        # Remove keys
+        self.client.delete(*redis_keys)
+        self._remove_from_key_set(*keys_to_remove)
+        return None
+
+    def flush(self):
+        pass
+
 
     def __repr__(self):
         return "<RedisStorage: {0!r}>".format(self.collection)

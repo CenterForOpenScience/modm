@@ -146,7 +146,7 @@ class PickleStorage(Storage):
             return copy.deepcopy(data)
 
     def _remove_by_pk(self, key, flush=True):
-        """Retrieve value from store.
+        """Remove value from store.
 
         :param key: Key
 
