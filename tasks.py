@@ -6,13 +6,22 @@ docs_dir = 'docs'
 build_dir = os.path.join(docs_dir, '_build')
 
 @task
-def mongo(daemon=False, port=20771):
+def mongo(daemon=False):
     '''Run the mongod process.
     '''
+    port = os.environ.get('MONGO_PORT', 20771)
     cmd = "mongod --port {0}".format(port)
     if daemon:
         cmd += " --fork"
     run(cmd)
+
+
+@task
+def redis():
+    port = os.environ.get("REDIS_PORT", 6379)
+    cmd = "redis-server --port {0}".format(port)
+    run(cmd)
+
 
 @task
 def test(coverage=False, browse=False):
@@ -27,7 +36,7 @@ def test(coverage=False, browse=False):
 def clean():
     run("rm -rf build")
     run("rm -rf dist")
-    run("rm -rf marshmallow.egg-info")
+    run("rm -rf modularodm.egg-info")
     clean_docs()
     print("Cleaned up.")
 

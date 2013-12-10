@@ -5,7 +5,7 @@ modular-odm
 .. image:: https://badge.fury.io/py/modular-odm.png
     :target: http://badge.fury.io/py/modular-odm
 
-A database-agnostic Document-Object Mapper for Python.
+A Document-Object Mapper with support for multiple NoSQL backends.
 
 
 Install
@@ -91,10 +91,10 @@ TODO
 Development
 ===========
 
-Tests require `nose <http://nose.readthedocs.org/en/latest/>`_, `invoke <http://docs.pyinvoke.org/en/latest/>`_, and MongoDB.
+Tests require `nose <http://nose.readthedocs.org/en/latest/>`_, `invoke <http://docs.pyinvoke.org/en/latest/>`_, MongoDB, and redis.
 
-Installing MongoDB
-------------------
+Installing Dependencies
+-----------------------
 
 If you are on MacOSX with `homebrew <http://brew.sh/>`_, run
 
@@ -102,15 +102,23 @@ If you are on MacOSX with `homebrew <http://brew.sh/>`_, run
 
     $ brew update
     $ brew install mongodb
+    $ brew install redis
+
+Then install the Python development requirements with
+
+.. code-block:: bash
+
+    $ pip install -r dev-requirements.txt
 
 Running Tests
 -------------
 
-To start mongodb, run
+You must have both a mongo and redis server running to execute the tests.
 
 .. code-block:: bash
 
     $ invoke mongo
+    $ invoke redis
 
 Run all tests with
 
