@@ -177,6 +177,10 @@ class TestRedisQuerySet(RedisTestCase):
         expected = sorted(list(Person.find()), key=lambda rec: rec.age, reverse=True)
         assert_equal(loaded_objects, expected)
 
+    def test_limit(self):
+        limited = self.qs.sort("age").limit(3)
+        assert_equal(len(limited), 3)
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -41,6 +41,16 @@ class RedisQuerySet(BaseQuerySet):
             self.data = sorted(self.data, key=lambda rec: rec[sort_key], reverse=reverse)
         return self
 
+    def offset(self, n):
+        """Return the queryset offset by ``n`` items."""
+        self.data = self.data[n:]
+        return self
+
+    def limit(self, n):
+        """Return the queryset limited to ``n`` items."""
+        self.data = self.data[:n]
+        return self
+
 
 class RedisStorage(Storage):
     '''Storage backend for Redis. Requires redis-py.
