@@ -59,7 +59,8 @@ class RedisStorage(Storage):
         <collection>:<id>
 
     In addition a set keyed by <collection>_keys stores a set of all primary
-    keys for the collection.
+    keys for the collection. As a result, the queryset returned by a
+    StoredObject's ``find()`` method will be unordered.
 
     :param redis.Redis client: The ``redis.Redis`` object from redis-py.
     :param str collection: The name of the collection, e.g. "user"
@@ -136,25 +137,20 @@ class RedisStorage(Storage):
 
     def find(self, query=None, by_pk=False):
         """Return generator over query results. Takes optional
-        by_pk keyword argument; if True, return keys rather than
+        by_pk keyword argument; if ``True``, return keys rather than
         values.
+
+        .. note:: The returned objects are unordered.
         """
         if query is None:
-            # Yield every object in the collection
-            for primary_key in self.get_key_set():
-                if by_pk:
-                    yield primary_key
-                yield self.get_by_id(primary_key)
+            # Generator with every object in the collection
+            return (pkey if by_pk else self.get_by_id(pkey)
+                    for pkey in self.get_key_set())
         else:
-            for primary_key in self.get_key_set():
-                # The hash name
-                name = self.get_key(primary_key)
-                if self._match(name, query):
-                    if by_pk:
-                        yield primary_key
-                    else:
-                        record = self.get_by_id(primary_key)
-                        yield record
+            # Generator with objects filtered by query
+            return (pkey if by_pk else self.get_by_id(pkey)
+                    for pkey in self.get_key_set()
+                    if self._match(self.get_key(pkey), query))
 
     def _remove_from_key_set(self, *keys):
         """Remove primary keys from key set.
