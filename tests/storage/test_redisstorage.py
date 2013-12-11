@@ -9,10 +9,12 @@ import redis
 
 from modularodm import StoredObject, fields
 from modularodm.storage import RedisStorage
+from modularodm.storage.redisstorage import RedisQuerySet
 from modularodm.query.querydialect import DefaultQueryDialect as Q
 from modularodm import exceptions
 
 random.seed(1)
+
 
 class Person(StoredObject):
     _meta = {"optimistic": True}
@@ -21,10 +23,9 @@ class Person(StoredObject):
     age = fields.IntegerField(required=False)
 
     def __repr__(self):
-        return "<Person: {0}>".format(self.name)
+        return "<Person: {0!r}>".format(self.name)
 
-class TestRedisStorage(unittest.TestCase):
-
+class RedisTestCase(unittest.TestCase):
     # DB Settings
     DB_HOST = os.environ.get("REDIS_HOST", 'localhost')
     DB_PORT = os.environ.get("REDIS_PORT", 6379)
@@ -33,6 +34,12 @@ class TestRedisStorage(unittest.TestCase):
     store = RedisStorage(client=client, collection='people')
     Person.set_storage(store)
 
+    def tearDown(self):
+        self.client.flushall()
+
+
+class TestRedisStorage(RedisTestCase):
+
     def setUp(self):
         self.p1 = Person(name="Foo")
         self.p1.save()
@@ -40,9 +47,6 @@ class TestRedisStorage(unittest.TestCase):
         self.p2.save()
         self.p3 = Person(name="Baz")
         self.p3.save()
-
-    def tearDown(self):
-        self.client.flushall()
 
     def test_insert(self):
         self.store.insert("_id", "abc123", {"name": "Steve", "age": 23})
@@ -127,6 +131,52 @@ class TestRedisStorage(unittest.TestCase):
     def test_get_key_set(self):
         key_set = self.client.smembers("people_keys")
         assert_equal(self.store.get_key_set(), key_set)
+
+    def test_update(self):
+        query = Q("_id", "eq", self.p1._id)
+        self.store.update(query, {"name": "Boo"})
+        # Record as dict
+        record = self.client.hgetall(self.store.get_key(self.p1._id))
+        assert_equal(record['name'], "Boo")
+
+    def test_update_one_stored_object(self):
+        Person.update_one(self.p1, {"name": "Boo"})
+        assert_equal(self.p1.name, "Boo")
+
+    def test_update_multiple(self):
+        self.client.flushall()
+        recs = []
+        for _ in range(5):
+            p = Person(name="Foo")
+            recs.append(p)
+            p.save()
+        self.store.update(Q("name", "eq", "Foo"), {"name": "Boo"})
+        for rec in recs:
+            rec.reload()
+            assert_equal(rec.name, "Boo")
+
+
+class TestRedisQuerySet(RedisTestCase):
+
+    def setUp(self):
+        for i in range(5):
+            p = Person(name="Foo", age=i + 1)
+            p.save()
+        Person(name="Bar", age=6).save()
+        self.qs = Person.find()
+
+    def test_sort(self):
+        sorted_qs = self.qs.sort("age")
+        loaded_objects = [p for p in sorted_qs]
+        expected = sorted(list(Person.find()), key=lambda rec: rec.age)
+        assert_equal(loaded_objects, expected)
+
+    def test_sort_reversed(self):
+        sorted_qs = self.qs.sort("-age")
+        loaded_objects = [p for p in sorted_qs]
+        expected = sorted(list(Person.find()), key=lambda rec: rec.age, reverse=True)
+        assert_equal(loaded_objects, expected)
+
 
 if __name__ == '__main__':
     unittest.main()

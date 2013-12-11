@@ -33,6 +33,14 @@ class RedisQuerySet(BaseQuerySet):
     def __repr__(self):
         return "<RedisQuerySet: {0}>".format(repr(list(self.data)))
 
+    def sort(self, *keys):
+        """Sort data by keys."""
+        for key in keys[::-1]:
+            reverse = key.startswith("-")
+            sort_key = key.lstrip("-")
+            self.data = sorted(self.data, key=lambda rec: rec[sort_key], reverse=reverse)
+        return self
+
 
 class RedisStorage(Storage):
     '''Storage backend for Redis. Requires redis-py.
