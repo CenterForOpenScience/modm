@@ -124,7 +124,6 @@ class RedisStorage(Storage):
         if query is None:
             # Yield every object in the collection
             for primary_key in self.get_key_set():
-                print(primary_key)
                 if by_pk:
                     yield primary_key
                 yield self.get_by_id(primary_key)
@@ -162,6 +161,17 @@ class RedisStorage(Storage):
         # Remove keys
         self.client.delete(*redis_keys)
         self._remove_from_key_set(*keys_to_remove)
+        return None
+
+    def update(self, query, data):
+        """Update multiple records in the store.
+
+        :param query: The query object.
+        :param dict data: Attribute:value pairs.
+        """
+        for primary_key in self.find(query, by_pk=True):
+            redis_key = self.get_key(primary_key)
+            self.client.hmset(redis_key, data)
         return None
 
     def flush(self):
