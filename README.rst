@@ -16,8 +16,8 @@ Install
     $ pip install modular-odm
 
 
-Example Usage with MongoDB
-==========================
+Example Usage
+=============
 
 Defining Models
 ---------------
@@ -49,6 +49,8 @@ Defining Models
 Setting the Storage Backend
 ---------------------------
 
+For **MongoDB**:
+
 .. code-block:: python
 
     from pymongo import MongoClient
@@ -58,6 +60,21 @@ Setting the Storage Backend
     db = client['testdb']
     User.set_storage(storage.MongoStorage(db, collection="user"))
     Comment.set_storage(storage.MongoStorage(db, collection="comment"))
+
+
+For **Redis**:
+
+.. note::
+    To use modularodm with Redis, you must have `redis-py <https://github.com/andymccurdy/redis-py>`_ installed.
+
+.. code-block:: python
+
+    from redis import Redis
+    from modularodm import storage
+
+    db = redis.Redis()
+    User.set_storage(storage.RedisStorage(db, collection="user"))
+    Comment.set_storage(storage.RedisStorage(db, collection="comment"))
 
 Creating and Querying
 ---------------------
