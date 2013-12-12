@@ -1,9 +1,23 @@
 # -*- coding: utf-8 -*-
+from bson import json_util
+import json
 
 from .base import Storage
 from ..query.query import QueryGroup, RawQuery
 from ..query.queryset import BaseQuerySet
 from .picklestorage import operators
+
+
+def dumps(val):
+    '''Custom JSON serialization function that allows serialization of special
+    types, e.g. datetimes, UUIDs, etc.
+    '''
+    return json.dumps(val, default=json_util.default)
+
+
+def loads(val):
+    '''Custom JSON deserialization function that handles special types.'''
+    return json.loads(val, object_hook=json_util.object_hook)
 
 
 class RedisQuerySet(BaseQuerySet):
@@ -29,6 +43,12 @@ class RedisQuerySet(BaseQuerySet):
         return len(self.data)
 
     count = __len__
+
+    def get_key(self, index):
+        return self.__getitem__(index, raw=True)
+
+    def get_keys(self):
+        return list(self.__iter__(raw=True))
 
     def __repr__(self):
         return "<RedisQuerySet: {0}>".format(repr(list(self.data)))
@@ -73,6 +93,12 @@ class RedisStorage(Storage):
         #: Name of set that stores the primary keys for this collection
         self._key_set = "{col}_keys".format(col=self.collection)
 
+    def to_storage(self, record):
+        return dict((k, dumps(v)) for k, v in record.iteritems())
+
+    def from_storage(self, record):
+        return dict((key, loads(val)) for key, val in record.iteritems())
+
     def get_key_set(self):
         """Return the set of primary keys from the store."""
         return self.client.smembers(self._key_set)
@@ -87,7 +113,8 @@ class RedisStorage(Storage):
         :param primary_name: The name of the primary key.
         :param key: The value of the primary key
         """
-        record = self.client.hgetall(self.get_key(key))
+        hash_vals = self.client.hgetall(self.get_key(key))
+        record = self.from_storage(hash_vals)
         return record
 
     def get_by_id(self, id):
@@ -106,7 +133,8 @@ class RedisStorage(Storage):
         # Add to set of primary keys
         self.client.sadd(self._key_set, key)
         # <collection>:<primary_key> => Hash of attribute:value pairs
-        self.client.hmset(self.get_key(key), value)
+        storeable = self.to_storage(value)
+        self.client.hmset(self.get_key(key), storeable)
         return None
 
     def _match(self, name, query):
@@ -131,7 +159,7 @@ class RedisStorage(Storage):
             attribute_value = self.client.hget(name, attribute)
             # Use same operators as pickle storage
             comp_function = operators[operator]
-            return comp_function(attribute_value, argument)
+            return comp_function(loads(attribute_value), argument)
         else:
             raise TypeError('Query must be a QueryGroup or Query object.')
 
@@ -185,12 +213,12 @@ class RedisStorage(Storage):
         """
         for primary_key in self.find(query, by_pk=True):
             redis_key = self.get_key(primary_key)
-            self.client.hmset(redis_key, data)
+            storeable = self.to_storage(data)
+            self.client.hmset(redis_key, storeable)
         return None
 
     def flush(self):
         pass
-
 
     def __repr__(self):
         return "<RedisStorage: {0!r}>".format(self.collection)

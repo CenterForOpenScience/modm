@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import os
+import json
 import random
+import datetime
 import unittest
 from nose.tools import *  # PEP8 asserts
 
@@ -21,6 +23,7 @@ class Person(StoredObject):
     _id = fields.StringField(primary=True, index=True)
     name = fields.StringField(required=True)
     age = fields.IntegerField(required=False)
+    created = fields.DateTimeField(default=datetime.datetime.utcnow)
 
     def __repr__(self):
         return "<Person: {0!r}>".format(self.name)
@@ -41,7 +44,7 @@ class RedisTestCase(unittest.TestCase):
 class TestRedisStorage(RedisTestCase):
 
     def setUp(self):
-        self.p1 = Person(name="Foo")
+        self.p1 = Person(name="Foo", age=12)
         self.p1.save()
         self.p2 = Person(name="Bar")
         self.p2.save()
@@ -52,7 +55,7 @@ class TestRedisStorage(RedisTestCase):
         self.store.insert("_id", "abc123", {"name": "Steve", "age": 23})
         # Sets key => hash of attributes
         name = self.client.hget("people:abc123", "name")
-        assert_equal(name, "Steve")
+        assert_equal(name, json.dumps("Steve"))
         age = int(self.client.hget("people:abc123", "age"))
         assert_equal(age, 23)
 
@@ -134,10 +137,11 @@ class TestRedisStorage(RedisTestCase):
 
     def test_update(self):
         query = Q("_id", "eq", self.p1._id)
-        self.store.update(query, {"name": "Boo"})
+        self.store.update(query, {"name": "Boo", 'age': 23})
         # Record as dict
         record = self.client.hgetall(self.store.get_key(self.p1._id))
-        assert_equal(record['name'], "Boo")
+        assert_equal(record['name'], json.dumps("Boo"))
+        assert_equal(record['age'],json.dumps(23))
 
     def test_update_one_stored_object(self):
         Person.update_one(self.p1, {"name": "Boo"})
