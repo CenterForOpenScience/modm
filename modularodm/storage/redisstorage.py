@@ -93,7 +93,7 @@ class RedisStorage(Storage):
         #: Name of set that stores the primary keys for this collection
         self._key_set = "{col}_keys".format(col=self.collection)
 
-    def to_storage(self, record):
+    def from_native(self, record):
         """Convert a python dictionary to a dictionary that can be stored
         in as a redis hash. Values must be serialized to JSON.
 
@@ -101,7 +101,7 @@ class RedisStorage(Storage):
         """
         return dict((k, dumps(v)) for k, v in record.iteritems())
 
-    def from_storage(self, record):
+    def to_native(self, record):
         """Convert a dictionary retrieved from the redis store to a native
         Python dictionary.
 
@@ -125,7 +125,7 @@ class RedisStorage(Storage):
         """
         hash_obj = self.client.hgetall(self.get_key(key))
         if hash_obj:
-            return self.from_storage(hash_obj)
+            return self.to_native(hash_obj)
         else:  # If HASH is empty, return None
             return None
 
@@ -145,7 +145,7 @@ class RedisStorage(Storage):
         # Add to set of primary keys
         self.client.sadd(self._key_set, key)
         # <collection>:<primary_key> => Hash of attribute:value pairs
-        storeable = self.to_storage(value)
+        storeable = self.from_native(value)
         self.client.hmset(self.get_key(key), storeable)
         return None
 
@@ -225,7 +225,7 @@ class RedisStorage(Storage):
         """
         for primary_key in self.find(query, by_pk=True):
             redis_key = self.get_key(primary_key)
-            storeable = self.to_storage(data)
+            storeable = self.from_native(data)
             self.client.hmset(redis_key, storeable)
         return None
 
