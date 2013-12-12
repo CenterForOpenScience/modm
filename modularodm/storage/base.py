@@ -209,6 +209,3 @@ class Storage(object):
                 'Query for find_one must return exactly one result; '
                 'returned {0}'.format(len(results))
             )
-
-    def __repr__(self):
-        return str(self.store)
