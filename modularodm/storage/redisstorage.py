@@ -169,9 +169,18 @@ class RedisStorage(Storage):
             attribute, operator, argument = \
                 query.attribute, query.operator, query.argument
             attribute_value = self.client.hget(name, attribute)
-            # Use same operators as pickle storage
             comp_function = operators[operator]
-            return comp_function(loads(attribute_value), argument)
+            # Datatype returned by redis-py might not be the type expected by a query
+            data_type = getattr(query, "datatype", None)
+            val = loads(attribute_value)
+            # Coerce val to be the correct datatype
+            if data_type:
+                if getattr(query, "use_list", False):
+                    val = [data_type(v) for v in val]
+                else:
+                    val = data_type(val)
+            # Use same operators as pickle storage
+            return comp_function(val, argument)
         else:
             raise TypeError('Query must be a QueryGroup or Query object.')
 
@@ -196,7 +205,7 @@ class RedisStorage(Storage):
         """Remove primary keys from key set.
 
         Redis doesn't support removing arbitrary values from a set
-        so overwrite the key_set with the difference betwen the
+        so overwrite the key_set with the difference between the
         current key_set and the set of keys to remove.
 
         :param keys: The primary keys to remove
