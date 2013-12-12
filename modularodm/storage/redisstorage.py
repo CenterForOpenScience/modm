@@ -94,9 +94,19 @@ class RedisStorage(Storage):
         self._key_set = "{col}_keys".format(col=self.collection)
 
     def to_storage(self, record):
+        """Convert a python dictionary to a dictionary that can be stored
+        in as a redis hash. Values must be serialized to JSON.
+
+        :param dict record: Dictionary representation of the record.
+        """
         return dict((k, dumps(v)) for k, v in record.iteritems())
 
     def from_storage(self, record):
+        """Convert a dictionary retrieved from the redis store to a native
+        Python dictionary.
+
+        :param dict record: A dictionary (hash) retrieved from the redis store.
+        """
         return dict((key, loads(val)) for key, val in record.iteritems())
 
     def get_key_set(self):
@@ -113,9 +123,11 @@ class RedisStorage(Storage):
         :param primary_name: The name of the primary key.
         :param key: The value of the primary key
         """
-        hash_vals = self.client.hgetall(self.get_key(key))
-        record = self.from_storage(hash_vals)
-        return record
+        hash_obj = self.client.hgetall(self.get_key(key))
+        if hash_obj:
+            return self.from_storage(hash_obj)
+        else:  # If HASH is empty, return None
+            return None
 
     def get_by_id(self, id):
         return self.get(None, id)

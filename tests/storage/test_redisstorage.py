@@ -147,6 +147,16 @@ class TestRedisStorage(RedisTestCase):
         Person.update_one(self.p1, {"name": "Boo"})
         assert_equal(self.p1.name, "Boo")
 
+    def test_updating_pk(self):
+        p = Person(name="Steve")
+        old_key = p._primary_key
+        p._id = 'mykey'
+        p.save()
+        StoredObject._clear_caches()
+        assert_true(Person.load("mykey") is not None)
+        assert_true(Person.load(old_key) is None)
+        assert_equal(p._id, 'mykey')
+
     def test_update_multiple(self):
         self.client.flushall()
         recs = []
