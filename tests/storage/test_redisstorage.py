@@ -59,34 +59,6 @@ class TestRedisStorage(RedisTestCase):
         age = int(self.client.hget("people:abc123", "age"))
         assert_equal(age, 23)
 
-    def test_create_stored_object(self):
-        p = Person(name="Foo", age=23)
-        p.save()
-        # has an _id
-        assert_true(p._id)
-        assert_equal(p.name, "Foo")
-        assert_equal(p.age, 23)
-
-    def test_load(self):
-        p = Person(name="Foo")
-        p.save()
-        retrieved = Person.load(p._id)
-        assert_equal(p, retrieved)
-
-    def test_find_all(self):
-        self.client.flushall()
-        for i in range(5):
-            p = Person(name="foo".format(i))
-            p.save()
-        all_people = Person.find()
-        assert_equal(len(all_people), 5)
-        assert_equal(all_people[0].name, 'foo')
-
-    def test_find(self):
-        retrieved = Person.find(Q("name", "eq", "Foo"))
-        assert_in(self.p1, retrieved)
-        assert_not_in(self.p2, retrieved)
-
     def test_find_by_pk(self):
         pks = list(self.store.find(by_pk=True))
         for each in Person.find():
@@ -94,25 +66,6 @@ class TestRedisStorage(RedisTestCase):
 
         pks = list(self.store.find(Q("name", "eq", self.p1.name), by_pk=True))
         assert_in(self.p1._primary_key, pks)
-
-    def test_find_one(self):
-        retrieved = Person.find_one(Q("name", "eq", "Foo"))
-        assert_equal(self.p1, retrieved)
-
-    def test_find_one_raises_error_if_no_records_found(self):
-        p = Person(name="Foo")
-        p.save()
-        assert_raises(exceptions.NoResultsFound,
-            lambda: Person.find_one(Q("name", "eq", "notfound")))
-
-    def test_find_one_raises_error_if_multiple_records_found(self):
-        self.client.flushall()
-        p = Person(name="Foo")
-        p.save()
-        p2 = Person(name="Foo")
-        p2.save()
-        assert_raises(exceptions.MultipleResultsFound,
-                    lambda: Person.find_one(Q("name", "eq", "Foo")))
 
     def test_repr(self):
         assert_equal(repr(self.store), "<RedisStorage: 'people'>")
@@ -142,20 +95,6 @@ class TestRedisStorage(RedisTestCase):
         record = self.client.hgetall(self.store.get_key(self.p1._id))
         assert_equal(record['name'], json.dumps("Boo"))
         assert_equal(record['age'],json.dumps(23))
-
-    def test_update_one_stored_object(self):
-        Person.update_one(self.p1, {"name": "Boo"})
-        assert_equal(self.p1.name, "Boo")
-
-    def test_updating_pk(self):
-        p = Person(name="Steve")
-        old_key = p._primary_key
-        p._id = 'mykey'
-        p.save()
-        StoredObject._clear_caches()
-        assert_true(Person.load("mykey") is not None)
-        assert_true(Person.load(old_key) is None)
-        assert_equal(p._id, 'mykey')
 
     def test_update_multiple(self):
         self.client.flushall()

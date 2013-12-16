@@ -48,10 +48,7 @@ nosetests.xml
 # Coverage
 cover
 
-# OSF-specific
-#######################
-Site/Cache/*
-Site/Uploads/*
-
 # Readme build
 README.html
+
+dump.rdb
