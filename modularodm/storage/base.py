@@ -4,6 +4,7 @@ import random
 from functools import wraps
 import itertools
 
+from modularodm import exceptions
 from ..translators import DefaultTranslator
 
 class KeyExistsException(Exception): pass
@@ -192,12 +193,19 @@ class Storage(object):
         """Flush the database."""
         raise NotImplementedError
 
-    def find_one(self, query=None, **kwargs):
-        """Find a single record that matches ``query``.
-        """
-        raise NotImplementedError
-
     def find(self, query=None, **kwargs):
         """Query the database and return a query set.
         """
         raise NotImplementedError
+
+    def find_one(self, query=None, **kwargs):
+        results = list(self.find(query))
+        if len(results) == 1:
+            return results[0]
+        elif len(results) == 0:
+            raise exceptions.NoResultsFound()
+        else:
+            raise exceptions.MultipleResultsFound(
+                'Query for find_one must return exactly one result; '
+                'returned {0}'.format(len(results))
+            )

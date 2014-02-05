@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 import logging
+import datetime
 
-from modularodm import exceptions, StoredObject
-from modularodm.fields import IntegerField
+from nose.tools import *  # PEP8 asserts
+
+from modularodm import fields, exceptions, StoredObject
 from modularodm.query.query import RawQuery as Q
 
 from tests.base import ModularOdmTestCase
@@ -14,9 +16,19 @@ class BasicQueryTestCase(ModularOdmTestCase):
 
     def define_objects(self):
         class Foo(StoredObject):
-            _id = IntegerField(primary=True)
+            _id = fields.IntegerField(primary=True)
 
-        return Foo,
+        class Person(StoredObject):
+            _meta = {"optimistic": True}
+            _id = fields.StringField(primary=True, index=True)
+            name = fields.StringField(required=True)
+            age = fields.IntegerField(required=False)
+            created = fields.DateTimeField(default=datetime.datetime.utcnow)
+
+            def __repr__(self):
+                return "<Person: {0!r}>".format(self.name)
+
+        return Foo, Person
 
     def set_up_objects(self):
         self.foos = []
@@ -25,6 +37,13 @@ class BasicQueryTestCase(ModularOdmTestCase):
             foo = self.Foo(_id=idx)
             foo.save()
             self.foos.append(foo)
+
+        self.p1 = self.Person(name="Foo", age=12)
+        self.p1.save()
+        self.p2 = self.Person(name="Bar")
+        self.p2.save()
+        self.p3 = self.Person(name="Baz")
+        self.p3.save()
 
     def test_load_by_pk(self):
         """ Given a known primary key, ``.get(pk)``  should return the object.
@@ -279,3 +298,27 @@ class BasicQueryTestCase(ModularOdmTestCase):
             [27, 28, 29]
         )
 
+    def test_find(self):
+        retrieved = self.Person.find(Q("name", "eq", "Foo"))
+        assert_in(self.p1, retrieved)
+        assert_not_in(self.p2, retrieved)
+
+    def test_create_stored_object(self):
+        p = self.Person(name="Foo", age=23)
+        p.save()
+        # has an _id
+        assert_true(p._id)
+        assert_equal(p.name, "Foo")
+        assert_equal(p.age, 23)
+
+    def test_update_one_stored_object(self):
+        self.Person.update_one(self.p1, {"name": "Boo"})
+        assert_equal(self.p1.name, "Boo")
+
+    def test_find_one_raises_error_if_no_records_found(self):
+        p = self.Person(name="Foo")
+        p2 = self.Person(name="Foo")
+        p.save()
+        p2.save()
+        assert_raises(exceptions.NoResultsFound,
+            lambda: self.Person.find_one(Q("name", "eq", "notfound")))

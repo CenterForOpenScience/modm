@@ -928,11 +928,13 @@ class StoredObject(object):
 
         if isinstance(query, RawQuery):
             field = cls._fields.get(query.attribute)
+            query.use_list = field._list
             if field is None:
                 return
             if field._is_foreign:
                 if getattr(query.argument, '_fields', None):
                     if field._is_abstract:
+                        query.datatype = tuple
                         query.argument = (
                             query.argument._primary_key,
                             query.argument._name,

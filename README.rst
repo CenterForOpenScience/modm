@@ -5,7 +5,7 @@ modular-odm
 .. image:: https://badge.fury.io/py/modular-odm.png
     :target: http://badge.fury.io/py/modular-odm
 
-A database-agnostic Document-Object Mapper for Python.
+A Document-Object Mapper with support for multiple NoSQL backends.
 
 
 Install
@@ -16,8 +16,8 @@ Install
     $ pip install modular-odm
 
 
-Example Usage with MongoDB
-==========================
+Example Usage
+=============
 
 Defining Models
 ---------------
@@ -49,6 +49,8 @@ Defining Models
 Setting the Storage Backend
 ---------------------------
 
+For **MongoDB**:
+
 .. code-block:: python
 
     from pymongo import MongoClient
@@ -58,6 +60,21 @@ Setting the Storage Backend
     db = client['testdb']
     User.set_storage(storage.MongoStorage(db, collection="user"))
     Comment.set_storage(storage.MongoStorage(db, collection="comment"))
+
+
+For **Redis**:
+
+.. note::
+    To use modularodm with Redis, you must have `redis-py <https://github.com/andymccurdy/redis-py>`_ installed.
+
+.. code-block:: python
+
+    from redis import Redis
+    from modularodm import storage
+
+    db = redis.Redis()
+    User.set_storage(storage.RedisStorage(db, collection="user"))
+    Comment.set_storage(storage.RedisStorage(db, collection="comment"))
 
 Creating and Querying
 ---------------------
@@ -91,10 +108,10 @@ TODO
 Development
 ===========
 
-Tests require `nose <http://nose.readthedocs.org/en/latest/>`_, `invoke <http://docs.pyinvoke.org/en/latest/>`_, and MongoDB.
+Tests require `nose <http://nose.readthedocs.org/en/latest/>`_, `invoke <http://docs.pyinvoke.org/en/latest/>`_, MongoDB, and redis.
 
-Installing MongoDB
-------------------
+Installing Dependencies
+-----------------------
 
 If you are on MacOSX with `homebrew <http://brew.sh/>`_, run
 
@@ -102,15 +119,23 @@ If you are on MacOSX with `homebrew <http://brew.sh/>`_, run
 
     $ brew update
     $ brew install mongodb
+    $ brew install redis
+
+Then install the Python development requirements with
+
+.. code-block:: bash
+
+    $ pip install -r dev-requirements.txt
 
 Running Tests
 -------------
 
-To start mongodb, run
+You must have both a mongo and redis server running to execute the tests.
 
 .. code-block:: bash
 
     $ invoke mongo
+    $ invoke redis
 
 Run all tests with
 

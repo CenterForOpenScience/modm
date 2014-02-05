@@ -2,12 +2,15 @@
 import logging
 import inspect
 import os
-import pymongo
 import unittest
 import uuid
 
+import pymongo
+import redis
+
 from modularodm import StoredObject
-from modularodm.storage import MongoStorage, PickleStorage, EphemeralStorage
+from modularodm.storage import (MongoStorage, PickleStorage, EphemeralStorage,
+                                RedisStorage)
 
 logger = logging.getLogger(__name__)
 
@@ -83,6 +86,23 @@ class MongoStorageMixin(object):
             self.mongo_client.drop_collection(c)
 
 
+class RedisStorageMixin(object):
+    fixture_suffix = "Redis"
+
+    # DB Settings
+    DB_HOST = os.environ.get("REDIS_HOST", 'localhost')
+    DB_PORT = os.environ.get("REDIS_PORT", 6379)
+
+    client = redis.Redis(host=DB_HOST, port=DB_PORT)
+
+    def make_storage(self):
+        collection = str(uuid.uuid4())[:8]
+        return RedisStorage(client=self.client, collection=collection)
+
+    def clean_up_storage(self):
+        self.client.flushall()
+
+
 class MultipleBackendMeta(type):
     def __new__(mcs, name, bases, dct):
 
@@ -101,6 +121,7 @@ class MultipleBackendMeta(type):
             PickleStorageMixin,
             MongoStorageMixin,
             EphemeralStorageMixin,
+            RedisStorageMixin
         ):
             new_name = '{}{}'.format(name, mixin.fixture_suffix)
             frame.f_globals[new_name] = type.__new__(

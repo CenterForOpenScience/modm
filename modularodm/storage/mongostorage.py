@@ -56,6 +56,7 @@ class MongoQuerySet(BaseQuerySet):
         super(MongoQuerySet, self).__init__(schema)
         self.data = cursor
 
+    # TODO: make this the default implementations of BaseQuerySet?
     def __getitem__(self, index, raw=False):
         super(MongoQuerySet, self).__getitem__(index)
         key = self.data[index][self.primary]
@@ -117,7 +118,7 @@ class MongoStorage(Storage):
 
     def __init__(self, db, collection):
         self.collection = collection
-        self.store = db[self.collection]
+        self.store = db[self.collection]  # a mongo collection
 
     def find(self, query=None, **kwargs):
         mongo_query = self._translate_query(query)
