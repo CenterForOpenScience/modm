@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import elasticsearch
 import logging
 import inspect
 import os
@@ -7,7 +8,7 @@ import unittest
 import uuid
 
 from modularodm import StoredObject
-from modularodm.storage import MongoStorage, PickleStorage, EphemeralStorage
+from modularodm.storage import MongoStorage, PickleStorage, EphemeralStorage, ElasticsearchStorage
 
 logger = logging.getLogger(__name__)
 
@@ -83,6 +84,23 @@ class MongoStorageMixin(object):
             self.mongo_client.drop_collection(c)
 
 
+class ElasticsearchStorageMixin(object):
+    fixture_suffix = 'Elasticsearch'
+
+    # DB settings
+    DB_HOST = os.environ.get('ES_HOST', 'localhost')
+    DB_PORT = int(os.environ.get('ES_PORT', '20772'))
+
+    client = elasticsearch.Elasticsearch([{"host": DB_HOST, "port": DB_PORT},])
+
+    def make_storage(self):
+        collection = str(uuid.uuid4())[:8]
+        return ElasticsearchStorage(client=self.client, collection=collection)
+
+    def clean_up_storage(self):
+        self.client.flush()
+
+
 class MultipleBackendMeta(type):
     def __new__(mcs, name, bases, dct):
 
@@ -101,6 +119,7 @@ class MultipleBackendMeta(type):
             PickleStorageMixin,
             MongoStorageMixin,
             EphemeralStorageMixin,
+            ElasticsearchStorageMixin,
         ):
             new_name = '{}{}'.format(name, mixin.fixture_suffix)
             frame.f_globals[new_name] = type.__new__(
