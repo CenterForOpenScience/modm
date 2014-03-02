@@ -92,6 +92,8 @@ class ElasticsearchStorage(Storage):
         ):
             matches.append(results)
 
+        for match in matches:
+            self._to_native_types(match)
 
         return matches
 
@@ -112,6 +114,9 @@ class ElasticsearchStorage(Storage):
             body=elasticsearch_query,
         )['hits']['hits']
 
+        for match in matches:
+            self._to_native_types(match)
+
         if len(matches) == 1:
             return matches[0]
 
@@ -124,7 +129,9 @@ class ElasticsearchStorage(Storage):
         )
 
     def get(self, primary_name, key):
-        return self.client.get(index=self.es_index, doc_type=self.collection, id=key)
+        match = self.client.get(index=self.es_index, doc_type=self.collection, id=key)
+        self._to_native_types(match)
+        return match
 
     def insert(self, primary_name, key, value):
         self.client.create(index=self.es_index, doc_type=self.collection, id=key, body=value)
@@ -209,3 +216,5 @@ class ElasticsearchStorage(Storage):
     def _stringop_to_regex(self, operator, argument):
         return STRINGOP_MAP[operator] % argument
 
+    def _to_native_types(self, match):
+        return match
