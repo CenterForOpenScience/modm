@@ -28,8 +28,7 @@ class ElasticsearchQuerySet(BaseQuerySet):
         return (self.schema.load(key) for key in keys)
 
     def __len__(self):
-
-        return self.data.count(with_limit_and_skip=True)
+        return len(self.data)
 
     count = __len__
 
