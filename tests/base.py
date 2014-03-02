@@ -90,17 +90,20 @@ class ElasticsearchStorageMixin(object):
     # DB settings
     DB_HOST = os.environ.get('ES_HOST', 'localhost')
     DB_PORT = int(os.environ.get('ES_PORT', '20772'))
+    DB_INDEX = '--modmtest--'
 
     client = elasticsearch.Elasticsearch([{"host": DB_HOST, "port": DB_PORT},])
+    indices = elasticsearch.client.IndicesClient(client)
 
     def make_storage(self):
         collection = str(uuid.uuid4())[:8]
         return ElasticsearchStorage(
-            client=self.client, es_index="--modmtest--", collection=collection
+            client=self.client, es_index=self.DB_INDEX, collection=collection
         )
 
     def clean_up_storage(self):
         self.client.flush()
+        self.indices.delete(self.DB_INDEX)
 
 
 class MultipleBackendMeta(type):
