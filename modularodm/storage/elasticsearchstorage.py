@@ -6,13 +6,20 @@ from ..query.query import QueryGroup
 from ..query.query import RawQuery
 from modularodm.exceptions import NoResultsFound, MultipleResultsFound
 
+EQUALITY_OPERATORS = ('eq', 'ne')
+SET_OPERATORS = ('in', 'nin')
+RANGE_OPERATORS = ('gt', 'gte', 'lt', 'lte')
+NEGATION_OPERATORS = ('ne', 'nin')
+
+STRING_OPERATORS = ('contains', 'icontains', 'endswith')
+STRINGOP_MAP = {'contains': '.*%s.*', 'icontains': '.*%s.*', 'endswith': '.*%s',}
 
 class ElasticsearchQuerySet(BaseQuerySet):
 
-    def __init__(self, schema, cursor):
+    def __init__(self, schema, data):
 
         super(ElasticsearchQuerySet, self).__init__(schema)
-        self.data = cursor
+        self.data = list(data)
 
     def __getitem__(self, index, raw=False):
         super(ElasticsearchQuerySet, self).__getitem__(index)
@@ -146,46 +153,49 @@ class ElasticsearchStorage(Storage):
     def __repr__(self):
         return self.find()
 
-    def _translate_query(self, query=None, elasticsearch_query=None):
-        """
 
-        """
+    def _translate_query(self, query=None, elasticsearch_query=None):
+        elasticsearch_query = self._build_query(query, elasticsearch_query)
+        return {'filter' : elasticsearch_query}
+
+
+    def _build_query(self, query=None, elasticsearch_query=None):
         elasticsearch_query = elasticsearch_query or {}
 
         if isinstance(query, RawQuery):
             attribute, operator, argument = \
                 query.attribute, query.operator, query.argument
 
-            if operator == 'eq':
-                elasticsearch_query[attribute] = argument
+            if operator in EQUALITY_OPERATORS:
+                elasticsearch_query['term'] = {attribute: argument}
 
-            elif operator in COMPARISON_OPERATORS:
-                elasticsearch_operator = '$' + operator
-                if attribute not in elasticsearch_query:
-                    elasticsearch_query[attribute] = {}
-                elasticsearch_query[attribute][elasticsearch_operator] = argument
+            elif operator in RANGE_OPERATORS:
+                elasticsearch_query['range'] = {attribute: {operator: argument}}
+
+            elif operator in SET_OPERATORS:
+                elasticsearch_query['terms'] = {attribute: argument}
+
+            elif operator == 'startswith':
+                elasticsearch_query['prefix'] = {attribute: argument}
 
             elif operator in STRING_OPERATORS:
-                elasticsearch_operator = '$regex'
-                elasticsearch_regex = prepare_query_value(operator, argument)
-                if attribute not in elasticsearch_query:
-                    elasticsearch_query[attribute] = {}
-                elasticsearch_query[attribute][elasticsearch_operator] = elasticsearch_regex
+                elasticsearch_query['regexp'] = {
+                    attribute: self._stringop_to_regex(operator, argument)
+                }
+
+
+            if operator in NEGATION_OPERATORS:
+                elasticsearch_query = {"not": elasticsearch_query}
 
         elif isinstance(query, QueryGroup):
-
             if query.operator == 'and':
-                elasticsearch_query = {}
-                for node in query.nodes:
-                    part = self._translate_query(node, elasticsearch_query)
-                    elasticsearch_query.update(part)
-                return elasticsearch_query
+                return {'and' : [self._build_query(node) for node in query.nodes]}
 
             elif query.operator == 'or':
-                return {'$or' : [self._translate_query(node) for node in query.nodes]}
+                return {'or' : [self._build_query(node) for node in query.nodes]}
 
             elif query.operator == 'not':
-                return {'$not' : self._translate_query(query.nodes[0])}
+                return {'not' : self._build_query(query.nodes[0])}
 
             else:
                 raise ValueError('QueryGroup operator must be <and>, <or>, or <not>.')
@@ -197,3 +207,7 @@ class ElasticsearchStorage(Storage):
             raise TypeError('Query must be a QueryGroup or Query object.')
 
         return elasticsearch_query
+
+    def _stringop_to_regex(self, operator, argument):
+        return STRINGOP_MAP[operator] % argument
+
