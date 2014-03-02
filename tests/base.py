@@ -105,6 +105,10 @@ class ElasticsearchStorageMixin(object):
         self.client.flush()
         self.indices.delete(self.DB_INDEX)
 
+    def setUp(self):
+        super(ElasticsearchStorageMixin, self).setUp()
+        self.indices.refresh(index=self.DB_INDEX)
+
 
 class MultipleBackendMeta(type):
     def __new__(mcs, name, bases, dct):
