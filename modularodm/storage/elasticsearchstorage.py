@@ -1,4 +1,4 @@
-import elasticsearch
+from elasticsearch import helpers
 
 from .base import Storage
 from ..query.queryset import BaseQuerySet
@@ -77,10 +77,18 @@ class ElasticsearchStorage(Storage):
 
     def find(self, query=None, **kwargs):
         elasticsearch_query = self._translate_query(query)
-        return self.client.search(
+
+        matches = []
+        for results in helpers.scan(
+            self.client,
+            query=elasticsearch_query,
             index=self.es_index,
-            body=elasticsearch_query,
-        )
+            doc_type=self.collection,
+        ):
+            matches.append(results)
+
+
+        return matches
 
     def find_one(self, query=None, **kwargs):
         """ Gets a single object from the collection.
@@ -95,18 +103,19 @@ class ElasticsearchStorage(Storage):
         elasticsearch_query = self._translate_query(query)
         matches = self.client.search(
             index=self.es_index,
+            doc_type=self.collection,
             body=elasticsearch_query,
-        )
+        )['hits']['hits']
 
-        if matches.count() == 1:
+        if len(matches) == 1:
             return matches[0]
 
-        if matches.count() == 0:
+        if len(matches) == 0:
             raise NoResultsFound()
 
         raise MultipleResultsFound(
             'Query for find_one must return exactly one result; '
-            'returned {0}'.format(matches.count())
+            'returned {0}'.format(len(matches))
         )
 
     def get(self, primary_name, key):
@@ -116,23 +125,20 @@ class ElasticsearchStorage(Storage):
         self.client.create(index=self.es_index, doc_type=self.collection, id=key, body=value)
 
     def update(self, query, data):
-
-        elasticsearch_query = self._translate_query(query)
-        if '_id' in elasticsearch_query:
-            update_data = {k: v for k, v in data.items() if k != '_id'}
-        else:
-            update_data = data
-        update_query = {'$set': update_data}
-
-        self.client.update(
-            index=self.es_index,
-            doc_type=self.collection, id=key,
-            body=data
-        )
+        for doc in self.find(query):
+            self.client.update(
+                index=self.es_index,
+                doc_type=self.collection, id=doc['_id'],
+                body={'doc': data}
+            )
 
     def remove(self, query=None):
         elasticsearch_query = self._translate_query(query)
-        self.client.delete_by_query(index=self.es_index, body=elasticsearch_query)
+        self.client.delete_by_query(
+            index=self.es_index,
+            doc_type=self.collection,
+            body=elasticsearch_query
+        )
 
     def flush(self):
         pass
