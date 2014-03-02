@@ -95,7 +95,9 @@ class ElasticsearchStorageMixin(object):
 
     def make_storage(self):
         collection = str(uuid.uuid4())[:8]
-        return ElasticsearchStorage(client=self.client, collection=collection)
+        return ElasticsearchStorage(
+            client=self.client, es_index="--modmtest--", collection=collection
+        )
 
     def clean_up_storage(self):
         self.client.flush()

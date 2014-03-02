@@ -70,14 +70,16 @@ class ElasticsearchStorage(Storage):
 
     QuerySet = ElasticsearchQuerySet
 
-    def __init__(self, client, collection):
+    def __init__(self, client, es_index, collection, ):
         self.client = client
         self.collection = collection
+        self.es_index = es_index
+
 
     def find(self, query=None, **kwargs):
         elasticsearch_query = self._translate_query(query)
         return self.client.search(
-            index=self.collection,
+            index=self.es_index,
             body=elasticsearch_query,
         )
 
@@ -93,7 +95,7 @@ class ElasticsearchStorage(Storage):
         """
         elasticsearch_query = self._translate_query(query)
         matches = self.client.search(
-            index=self.collection,
+            index=self.es_index,
             body=elasticsearch_query,
         )
 
@@ -109,13 +111,10 @@ class ElasticsearchStorage(Storage):
         )
 
     def get(self, primary_name, key):
-        return self.client.get(index=self.collection, doc_type=primary_name, id=key)
+        return self.client.get(index=self.es_index, doc_type=self.collection, id=key)
 
     def insert(self, primary_name, key, value):
-        if primary_name not in value:
-            value = value.copy()
-            value[primary_name] = key
-        self.client.create(index=self.collection, doc_type=primary_name, id=key, body=value)
+        self.client.create(index=self.es_index, doc_type=self.collection, id=key, body=value)
 
     def update(self, query, data):
 
@@ -127,14 +126,14 @@ class ElasticsearchStorage(Storage):
         update_query = {'$set': update_data}
 
         self.client.update(
-            index=self.collection,
-            doc_type=primary_name, id=key,
+            index=self.es_index,
+            doc_type=self.collection, id=key,
             body=data
         )
 
     def remove(self, query=None):
         elasticsearch_query = self._translate_query(query)
-        self.client.delete_by_query(index=self.collection, body=elasticsearch_query)
+        self.client.delete_by_query(index=self.es_index, body=elasticsearch_query)
 
     def flush(self):
         pass
