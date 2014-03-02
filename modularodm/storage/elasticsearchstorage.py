@@ -29,7 +29,7 @@ class ElasticsearchQuerySet(BaseQuerySet):
         return self.schema.load(key)
 
     def __iter__(self, raw=False):
-        keys = [obj[self.primary] for obj in self.data.clone()]
+        keys = [obj[self.primary] for obj in self.data]
         if raw:
             return keys
         return (self.schema.load(key) for key in keys)
@@ -48,28 +48,26 @@ class ElasticsearchQuerySet(BaseQuerySet):
     def sort(self, *keys):
 
         sort_key = []
-
-        for key in keys:
+        for key in keys[::-1]:
 
             if key.startswith('-'):
+                reverse = True
                 key = key.lstrip('-')
-                sign = pyelasticsearch.DESCENDING
             else:
-                sign = pyelasticsearch.ASCENDING
+                reverse = False
 
-            sort_key.append((key, sign))
+            self.data = sorted(self.data, key=lambda record: record[key], reverse=reverse)
 
-        self.data = self.data.sort(sort_key)
         return self
 
     def offset(self, n):
 
-        self.data = self.data.skip(n)
+        self.data = self.data[n:]
         return self
 
     def limit(self, n):
 
-        self.data = self.data.limit(n)
+        self.data = self.data[:n]
         return self
 
 class ElasticsearchStorage(Storage):
