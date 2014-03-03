@@ -92,7 +92,7 @@ class ElasticsearchStorageMixin(object):
     DB_PORT = int(os.environ.get('ES_PORT', '20772'))
     DB_INDEX = '--modmtest--'
 
-    client = elasticsearch.Elasticsearch([{"host": DB_HOST, "port": DB_PORT},])
+    client = elasticsearch.Elasticsearch([{"host": DB_HOST, "port": DB_PORT}])
     indices = elasticsearch.client.IndicesClient(client)
 
     def make_storage(self):
@@ -105,6 +105,7 @@ class ElasticsearchStorageMixin(object):
         self.client.flush()
         self.indices.delete(self.DB_INDEX)
 
+    # must refresh index before querying, or some results may not be found
     def setUp(self):
         super(ElasticsearchStorageMixin, self).setUp()
         self.indices.refresh(index=self.DB_INDEX)

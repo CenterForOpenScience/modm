@@ -17,7 +17,6 @@ STRINGOP_MAP = {'contains': '.*%s.*', 'icontains': '.*%s.*', 'endswith': '.*%s',
 class ElasticsearchQuerySet(BaseQuerySet):
 
     def __init__(self, schema, data):
-
         super(ElasticsearchQuerySet, self).__init__(schema)
         self.data = list(data)
 
@@ -46,7 +45,6 @@ class ElasticsearchQuerySet(BaseQuerySet):
         return list(self.__iter__(raw=True))
 
     def sort(self, *keys):
-
         sort_key = []
         for key in keys[::-1]:
 
@@ -61,12 +59,10 @@ class ElasticsearchQuerySet(BaseQuerySet):
         return self
 
     def offset(self, n):
-
         self.data = self.data[n:]
         return self
 
     def limit(self, n):
-
         self.data = self.data[:n]
         return self
 
@@ -79,10 +75,12 @@ class ElasticsearchStorage(Storage):
         self.collection = collection
         self.es_index = es_index
 
-
     def find(self, query=None, **kwargs):
         elasticsearch_query = self._translate_query(query)
 
+        # elasticsearch *always* limits search results.  The scan()
+        # helper in the elasitcsearch package will make repeated
+        # requests until no more results are returned.
         matches = []
         for results in helpers.scan(
             self.client,
@@ -158,13 +156,12 @@ class ElasticsearchStorage(Storage):
     def __repr__(self):
         return self.find()
 
-
     def _translate_query(self, query=None, elasticsearch_query=None):
         elasticsearch_query = self._build_query(query, elasticsearch_query)
         return {'filter' : elasticsearch_query}
 
-
     def _build_query(self, query=None, elasticsearch_query=None):
+        """Turn a query object into a valid elasticsearch filter dict"""
         elasticsearch_query = elasticsearch_query or {}
 
         if isinstance(query, RawQuery):
