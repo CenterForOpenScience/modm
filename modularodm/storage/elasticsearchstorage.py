@@ -144,10 +144,14 @@ class ElasticsearchStorage(Storage):
 
     def remove(self, query=None):
         elasticsearch_query = self._translate_query(query)
+        delete_query = {"filtered" : {
+            "query" : {"match_all" : {}},
+            "filter": elasticsearch_query['filter'],
+        }}
         self.client.delete_by_query(
             index=self.es_index,
             doc_type=self.collection,
-            body=elasticsearch_query
+            body=delete_query
         )
 
     def flush(self):
