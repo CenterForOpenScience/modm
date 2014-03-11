@@ -1,4 +1,4 @@
-from elasticsearch import helpers
+from elasticsearch import helpers, NotFoundError
 
 from .base import Storage
 from ..query.queryset import BaseQuerySet
@@ -91,7 +91,7 @@ class ElasticsearchStorage(Storage):
             matches.append(results)
 
         for match in matches:
-            self._to_native_types(match)
+            match = self._from_elastic_types(match)
 
         return matches
 
@@ -112,11 +112,8 @@ class ElasticsearchStorage(Storage):
             body=elasticsearch_query,
         )['hits']['hits']
 
-        for match in matches:
-            self._to_native_types(match)
-
         if len(matches) == 1:
-            return matches[0]
+            return self._from_elastic_types(matches[0])
 
         if len(matches) == 0:
             raise NoResultsFound()
@@ -127,14 +124,22 @@ class ElasticsearchStorage(Storage):
         )
 
     def get(self, primary_name, key):
-        match = self.client.get(index=self.es_index, doc_type=self.collection, id=key)
-        self._to_native_types(match)
-        return match
+        match = {}
+        try:
+            match = self.client.get(index=self.es_index, doc_type=self.collection, id=key)
+        except NotFoundError:
+            return None
+
+        return self._from_elastic_types(match)
 
     def insert(self, primary_name, key, value):
-        self.client.create(index=self.es_index, doc_type=self.collection, id=key, body=value)
+        self.client.create(
+            index=self.es_index, doc_type=self.collection, id=key,
+            body=self._to_elastic_types(value),
+        )
 
     def update(self, query, data):
+        data = self._to_elastic_types(data)
         for doc in self.find(query):
             self.client.update(
                 index=self.es_index,
@@ -217,5 +222,17 @@ class ElasticsearchStorage(Storage):
     def _stringop_to_regex(self, operator, argument):
         return STRINGOP_MAP[operator] % argument
 
-    def _to_native_types(self, match):
+    def _to_elastic_types(self, match):
+        for foo in match:
+            if type(match[foo]) is tuple:
+                match[foo] = (str(match[foo][0]), match[foo][1])
+
+        return match
+
+    def _from_elastic_types(self, match):
+        match = match['_source']
+        for foo in match:
+            if type(match[foo]) is tuple:
+                match[foo] = (int(match[foo][0]), match[foo][1])
+
         return match
