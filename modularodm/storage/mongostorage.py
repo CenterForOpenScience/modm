@@ -108,6 +108,12 @@ class MongoQuerySet(BaseQuerySet):
         self.data = self.data.limit(n)
         return self
 
+    def distinct(self, key):
+
+        self.data = self.data.distinct(key)
+        return self.data
+
+
 class MongoStorage(Storage):
 
     QuerySet = MongoQuerySet
