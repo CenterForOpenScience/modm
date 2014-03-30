@@ -109,7 +109,9 @@ class MongoQuerySet(BaseQuerySet):
         return self
 
     def distinct(self, key):
-
+        """Get a list of distinct values for key 
+        among all documents in this collection.
+        """
         self.data = self.data.distinct(key)
         return self.data
 
