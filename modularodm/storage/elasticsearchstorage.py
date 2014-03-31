@@ -112,10 +112,11 @@ class ElasticsearchStorage(Storage):
         ):
             matches.append(results)
 
+        results = []
         for match in matches:
-            match = self._from_elastic_types(match)
+            results.append(self._from_elastic_types(match))
 
-        return matches
+        return results
 
     def find_one(self, query=None, **kwargs):
         """ Gets a single object from the collection.
@@ -253,9 +254,9 @@ class ElasticsearchStorage(Storage):
         return match
 
     def _from_elastic_types(self, match):
-        match = match['_source']
-        for foo in match:
-            if type(match[foo]) is tuple:
-                match[foo] = (int(match[foo][0]), match[foo][1])
+        result = match['_source']
+        for foo in result:
+            if type(result[foo]) is tuple:
+                result[foo] = (int(result[foo][0]), result[foo][1])
 
-        return match
+        return result
