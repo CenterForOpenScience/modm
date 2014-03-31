@@ -12,7 +12,12 @@ RANGE_OPERATORS = ('gt', 'gte', 'lt', 'lte')
 NEGATION_OPERATORS = ('ne', 'nin')
 
 STRING_OPERATORS = ('contains', 'icontains', 'endswith')
-STRINGOP_MAP = {'contains': '.*%s.*', 'icontains': '.*%s.*', 'endswith': '.*%s',}
+STRINGOP_MAP = {
+    'contains':  '.*%s.*',
+    'icontains': '.*%s.*',
+    'endswith':  '.*%s',
+}
+
 
 class ElasticsearchQuerySet(BaseQuerySet):
 
@@ -166,8 +171,8 @@ class ElasticsearchStorage(Storage):
 
     def remove(self, query=None):
         elasticsearch_query = self._translate_query(query)
-        delete_query = {"filtered" : {
-            "query" : {"match_all" : {}},
+        delete_query = {"filtered": {
+            "query": {"match_all": {}},
             "filter": elasticsearch_query['filter'],
         }}
         self.client.delete_by_query(
@@ -184,7 +189,7 @@ class ElasticsearchStorage(Storage):
 
     def _translate_query(self, query=None, elasticsearch_query=None):
         elasticsearch_query = self._build_query(query, elasticsearch_query)
-        return {'filter' : elasticsearch_query}
+        return {'filter': elasticsearch_query}
 
     def _build_query(self, query=None, elasticsearch_query=None):
         """Turn a query object into a valid elasticsearch filter dict"""
@@ -198,7 +203,9 @@ class ElasticsearchStorage(Storage):
                 elasticsearch_query['term'] = {attribute: argument}
 
             elif operator in RANGE_OPERATORS:
-                elasticsearch_query['range'] = {attribute: {operator: argument}}
+                elasticsearch_query['range'] = {
+                    attribute: {operator: argument}
+                }
 
             elif operator in SET_OPERATORS:
                 elasticsearch_query['terms'] = {attribute: argument}
@@ -211,19 +218,18 @@ class ElasticsearchStorage(Storage):
                     attribute: self._stringop_to_regex(operator, argument)
                 }
 
-
             if operator in NEGATION_OPERATORS:
                 elasticsearch_query = {"not": elasticsearch_query}
 
         elif isinstance(query, QueryGroup):
             if query.operator == 'and':
-                return {'and' : [self._build_query(node) for node in query.nodes]}
+                return {'and': [self._build_query(node) for node in query.nodes]}
 
             elif query.operator == 'or':
-                return {'or' : [self._build_query(node) for node in query.nodes]}
+                return {'or': [self._build_query(node) for node in query.nodes]}
 
             elif query.operator == 'not':
-                return {'not' : self._build_query(query.nodes[0])}
+                return {'not': self._build_query(query.nodes[0])}
 
             else:
                 raise ValueError('QueryGroup operator must be <and>, <or>, or <not>.')
