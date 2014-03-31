@@ -1,3 +1,4 @@
+import elasticsearch
 from elasticsearch import helpers, NotFoundError
 
 from .base import Storage
@@ -260,3 +261,7 @@ class ElasticsearchStorage(Storage):
                 result[foo] = (int(result[foo][0]), result[foo][1])
 
         return result
+
+    def refresh(self):
+        indices = elasticsearch.client.IndicesClient(self.client)
+        indices.refresh(index=self.es_index)
