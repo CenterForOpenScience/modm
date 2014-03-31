@@ -10,7 +10,14 @@ import uuid
 from modularodm import StoredObject
 from modularodm.storage import MongoStorage, PickleStorage, EphemeralStorage, ElasticsearchStorage
 
+
+class NullHandler(logging.Handler):
+    def emit(self, record):
+        pass
+
 logger = logging.getLogger(__name__)
+logging.getLogger('elasticsearch.trace').addHandler(NullHandler())
+
 
 class TestObject(StoredObject):
     def __init__(self, *args, **kwargs):
