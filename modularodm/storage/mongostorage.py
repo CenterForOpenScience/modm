@@ -108,6 +108,14 @@ class MongoQuerySet(BaseQuerySet):
         self.data = self.data.limit(n)
         return self
 
+    def distinct(self, key):
+        """Get a list of distinct values for key 
+        among all documents in this collection.
+        """
+        self.data = self.data.distinct(key)
+        return self.data
+
+
 class MongoStorage(Storage):
 
     QuerySet = MongoQuerySet
