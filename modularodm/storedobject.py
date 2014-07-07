@@ -820,6 +820,7 @@ class StoredObject(object):
         else:
             self.insert(self._primary_key, storage_data)
 
+        self._storage[0].refresh()
         # if primary key has changed, follow back references and update
         # AND
         # run after_save or after_save_on_difference

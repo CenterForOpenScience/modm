@@ -2,3 +2,4 @@ flask
 blinker
 pymongo
 python-dateutil
+elasticsearch>=1.0

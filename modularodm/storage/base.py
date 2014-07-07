@@ -213,3 +213,8 @@ class Storage(object):
         """Query the database and return a query set.
         """
         raise NotImplementedError
+
+    def refresh(self):
+        """Refresh the index (needed for real-time databases)
+        """
+        pass

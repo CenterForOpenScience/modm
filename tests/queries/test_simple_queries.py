@@ -37,7 +37,8 @@ class BasicQueryTestCase(ModularOdmTestCase):
         )
 
     def test_find_all(self):
-        """ If no query object is passed, ``.find()`` should return all objects.
+        """ If no query object is passed, ``.find()`` should return all
+        objects.
         """
         self.assertEqual(
             len(self.Foo.find()),
@@ -45,8 +46,8 @@ class BasicQueryTestCase(ModularOdmTestCase):
         )
 
     def test_find_one(self):
-        """ Given a query with exactly one result record, ``.find_one()`` should
-        return that object.
+        """ Given a query with exactly one result record, ``.find_one()``
+        should return that object.
         """
         self.assertEqual(
             self.Foo.find_one(Q('_id', 'eq', 0))._id,
@@ -54,8 +55,8 @@ class BasicQueryTestCase(ModularOdmTestCase):
         )
 
     def test_find_one_return_zero(self):
-        """ Given a query with zero result records, ``.find_one()`` should raise
-         an appropriate error.
+        """ Given a query with zero result records, ``.find_one()`` should
+        raise an appropriate error.
         """
         with self.assertRaises(exceptions.NoResultsFound):
             self.Foo.find_one(Q('_id', 'eq', -1))
@@ -68,9 +69,7 @@ class BasicQueryTestCase(ModularOdmTestCase):
             result = self.Foo.find_one()
             logger.debug(result)
 
-
     # individual filter tests (limit, offset, sort)
-
     def test_limit(self):
         """ For a query that returns > n results, `.limit(n)` should return the
          first n.
@@ -86,7 +85,6 @@ class BasicQueryTestCase(ModularOdmTestCase):
         )
         # TODO: test limit = 0
 
-
     def test_offset(self):
         """For a query that returns n results, ``.offset(m)`` should return
         n - m results, skipping the first m that would otherwise have been
@@ -98,7 +96,6 @@ class BasicQueryTestCase(ModularOdmTestCase):
         )
         # TODO: test offset = 0, offset > self.COUNT
 
-
     def test_sort(self):
         results = self.Foo.find().sort('-_id')
         self.assertListEqual(
@@ -106,29 +103,25 @@ class BasicQueryTestCase(ModularOdmTestCase):
             range(self.COUNT)[::-1],
         )
 
-
     # paired filter tests:
     #   limit  + {limit,offset,sort}
     #   offset + {offset,sort}
     #   sort   + sort
     # each test sub tests the filters in both orders. i.e. limit + offset
     # tests .limit().offset() AND .offset().limit()
-
     def test_limit_limit(self):
-        self.assertEqual( len(self.Foo.find().limit(5).limit(10)), 10 )
-        self.assertEqual( len(self.Foo.find().limit(10).limit(5)), 5  )
-
+        self.assertEqual(len(self.Foo.find().limit(5).limit(10)), 10)
+        self.assertEqual(len(self.Foo.find().limit(10).limit(5)), 5)
 
     def test_limit_offset(self):
-        self.assertEqual( len(self.Foo.find().limit(2).offset(2)), 2 )
-        self.assertEqual( len(self.Foo.find().offset(2).limit(2)), 2 )
+        self.assertEqual(len(self.Foo.find().limit(2).offset(2)), 2)
+        self.assertEqual(len(self.Foo.find().offset(2).limit(2)), 2)
 
         tmp = 5
         limit = tmp + 5
         offset = self.COUNT - tmp
         self.assertEqual(len(self.Foo.find().limit(limit).offset(offset)), tmp)
         self.assertEqual(len(self.Foo.find().offset(offset).limit(limit)), tmp)
-
 
     def test_limit_sort(self):
         limit, sort, = [10, '-_id']
@@ -140,7 +133,6 @@ class BasicQueryTestCase(ModularOdmTestCase):
         results = self.Foo.find().sort(sort).limit(limit)
         self.assertListEqual([x._id for x in results], expect)
 
-
     def test_offset_offset(self):
         self.assertEqual(
             len(self.Foo.find().offset(10).offset(17)),
@@ -151,7 +143,6 @@ class BasicQueryTestCase(ModularOdmTestCase):
             self.COUNT-10
         )
 
-
     def test_offset_sort(self):
         offset, sort = [27, '-_id']
         expect = range(self.COUNT-offset)[::-1]
@@ -161,7 +152,6 @@ class BasicQueryTestCase(ModularOdmTestCase):
 
         results = self.Foo.find().sort(sort).offset(offset)
         self.assertListEqual([x._id for x in results], expect)
-
 
     def test_sort_sort(self):
         results = self.Foo.find().sort('-_id').sort('_id')
@@ -175,15 +165,13 @@ class BasicQueryTestCase(ModularOdmTestCase):
             range(self.COUNT)[::-1],
         )
 
-
     # all three filters together
-
     def test_limit_offset_sort(self):
         test_sets = [
             # limit offset sort    expect
-            [ 10,   7,     '-_id', range(self.COUNT-7-10, self.COUNT-7)[::-1], ],
-            [ 20,   17,    '_id',  range(17, self.COUNT),                      ],
-            [ 10,   5,     '_id',  range(5, 5+10),                             ],
+            [10,   7,     '-_id', range(self.COUNT-7-10, self.COUNT-7)[::-1]],
+            [20,   17,    '_id',  range(17, self.COUNT)],
+            [10,   5,     '_id',  range(5, 5+10)],
         ]
         for test in test_sets:
             limit, offset, sort, expect = test
@@ -197,4 +185,4 @@ class BasicQueryTestCase(ModularOdmTestCase):
             ]
 
             for result in all_combinations:
-                self.assertListEqual( [x._id for x in result], expect )
+                self.assertListEqual([x._id for x in result], expect)
