@@ -15,10 +15,12 @@ def mongo(daemon=False, port=20771):
     run(cmd)
 
 @task
-def elastic(port=20772, clustername='modular-odm-test'):
+def elastic(daemon=False, port=20772, clustername='modular-odm-test'):
     '''Run the elasticsearch process.
     '''
     cmd = "elasticsearch -Des.http.port={0} -Des.cluster.name={1}".format(port, clustername)
+    if daemon:
+        cmd += " -d"
     run(cmd)
 
 @task
