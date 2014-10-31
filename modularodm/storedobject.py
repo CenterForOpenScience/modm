@@ -259,6 +259,9 @@ class StoredObject(object):
             # Can't compare with "other". Try the reverse comparison
             return NotImplemented
 
+    def __hash__(self):
+        return id(self)  # TODO(fabianvf)
+
     def __ne__(self, other):
         equal = self.__eq__(other)
         return equal if equal is NotImplemented else not equal
