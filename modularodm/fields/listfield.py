@@ -5,6 +5,7 @@ import copy
 from modularodm import signals
 from ..fields import Field
 from ..validators import validate_list
+import collections
 
 
 class ListField(Field):
@@ -29,7 +30,7 @@ class ListField(Field):
         # Descriptor data is this type of list object, instantiated as our
         # default
         if self._default:
-            default = self._default() if callable(self._default) else self._default
+            default = self._default() if isinstance(self._default, collections.Callable) else self._default
             if not hasattr(default, '__iter__') or isinstance(default, dict):
                 raise TypeError(
                     'Default value for list fields must be a list; received {0}'.format(

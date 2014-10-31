@@ -1,5 +1,5 @@
-from picklestorage import PickleStorage
-from StringIO import StringIO
+from .picklestorage import PickleStorage
+from io import StringIO
 try:
     import cpickle as pickle
 except ImportError:

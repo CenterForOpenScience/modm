@@ -8,7 +8,7 @@ from functools import wraps
 
 from . import signals
 from . import exceptions
-from fields import Field, ListField, ForeignList, AbstractForeignList
+from .fields import Field, ListField, ForeignList, AbstractForeignList
 from .storage import Storage
 from .query import QueryBase, RawQuery, QueryGroup
 from .frozen import FrozenDict
@@ -65,7 +65,7 @@ def flatten_backrefs(data, stack=None):
         return [(stack, item) for item in data]
 
     out = []
-    for key, val in data.items():
+    for key, val in list(data.items()):
         out.extend(flatten_backrefs(val, stack + [key]))
 
     return out
@@ -174,13 +174,13 @@ class ObjectMeta(type):
         cls._primary_name = None
         cls._primary_type = None
 
-        for key, value in cls.__dict__.items():
+        for key, value in list(cls.__dict__.items()):
             cls.add_field(key, value)
 
         for base in bases:
             if not hasattr(base, '_fields') or not isinstance(base._fields, dict):
                 continue
-            for key, value in base._fields.items():
+            for key, value in list(base._fields.items()):
                 cls.add_field(key, copy.deepcopy(value))
 
         # Impute field named _id as primary if no primary field specified;
@@ -231,12 +231,12 @@ class StoredObject(object):
         self._stored_key = None
 
         # Impute non-lazy default values (e.g. datetime with auto_now=True)
-        for value in self._fields.values():
+        for value in list(self._fields.values()):
             if not value.lazy_default:
                 value.__set__(self, value._gen_default(), safe=True)
 
         # Add kwargs to instance
-        for key, value in kwargs.items():
+        for key, value in list(kwargs.items()):
             try:
                 field = self._fields[key]
                 field.__set__(self, value, safe=True)
@@ -265,11 +265,11 @@ class StoredObject(object):
 
     @warn_if_detached
     def __unicode__(self):
-        return unicode({field : unicode(getattr(self, field)) for field in self._fields})
+        return str({field : str(getattr(self, field)) for field in self._fields})
 
     @warn_if_detached
     def __str__(self):
-        return unicode(self).decode('ascii', 'replace')
+        return str(self).decode('ascii', 'replace')
 
     @classmethod
     def register_collection(cls):
@@ -302,7 +302,7 @@ class StoredObject(object):
 
         data = {}
 
-        for field_name, field_object in self._fields.items():
+        for field_name, field_object in list(self._fields.items()):
 
             # Ignore primary and foreign fields if cloning
             # TODO: test this
@@ -327,7 +327,7 @@ class StoredObject(object):
 
         result = {}
 
-        for key, value in data.items():
+        for key, value in list(data.items()):
 
             field_object = cls._fields.get(key, None)
 
@@ -417,7 +417,7 @@ class StoredObject(object):
         if not hasattr(cls, '_storage'):
             cls._storage = []
 
-        for field_name, field_object in cls._fields.items():
+        for field_name, field_object in list(cls._fields.items()):
             if field_object._index:
                 storage._ensure_index(field_name)
 
@@ -764,7 +764,7 @@ class StoredObject(object):
         if self._detached:
             raise exceptions.DatabaseError('Cannot save detached object.')
 
-        for field_name, field_object in self._fields.items():
+        for field_name, field_object in list(self._fields.items()):
             if hasattr(field_object, 'on_before_save'):
                 field_object.on_before_save(self)
 
@@ -781,7 +781,7 @@ class StoredObject(object):
                 cached_data, storage_data
             )
         else:
-            fields_changed = self._fields.keys()
+            fields_changed = list(self._fields.keys())
 
         # Quit if no diffs
         if not fields_changed and not force:
@@ -847,7 +847,7 @@ class StoredObject(object):
 
         storage_data = self._storage[0].get(self._primary_name, self._storage_key)
 
-        for key, value in storage_data.items():
+        for key, value in list(storage_data.items()):
             field_object = self._fields.get(key, None)
             if isinstance(field_object, Field):
                 data_value = storage_data[key]
@@ -872,8 +872,8 @@ class StoredObject(object):
 
         if item in self.__backrefs:
             backrefs = []
-            for parent, rest0 in self.__backrefs[item].iteritems():
-                for field, rest1 in rest0.iteritems():
+            for parent, rest0 in self.__backrefs[item].items():
+                for field, rest1 in rest0.items():
                     backrefs.extend([
                         (key, parent)
                         for key in rest1
@@ -887,7 +887,7 @@ class StoredObject(object):
                 parent_schema_name, backref_key = item_split
                 backrefs = deref(self.__backrefs, [backref_key, parent_schema_name], missing={})
                 ids = sum(
-                    backrefs.values(),
+                    list(backrefs.values()),
                     []
                 )
             elif len(item_split) == 3:
@@ -1078,7 +1078,7 @@ class StoredObject(object):
 
         storage_data = {}
 
-        for key, value in data.items():
+        for key, value in list(data.items()):
             if key in cls._fields:
                 field_object = cls._fields[key]
                 if key == cls._primary_name:
@@ -1090,7 +1090,7 @@ class StoredObject(object):
         return storage_data
 
     def _update_in_memory(self, storage_data):
-        for field_name, data_value in storage_data.items():
+        for field_name, data_value in list(storage_data.items()):
             field_object = self._fields[field_name]
             field_object.__set__(self, data_value, safe=True)
         self.save()
@@ -1108,7 +1108,7 @@ class StoredObject(object):
     def update_one(cls, which, data=None, storage_data=None, saved=False, inmem=False):
 
         storage_data = storage_data or cls._data_to_storage(data)
-        includes_foreign = cls._includes_foreign(storage_data.keys())
+        includes_foreign = cls._includes_foreign(list(storage_data.keys()))
         obj = cls._which_to_obj(which)
 
         if saved or not includes_foreign:
@@ -1132,7 +1132,7 @@ class StoredObject(object):
     def update(cls, query, data=None, storage_data=None):
 
         storage_data = storage_data or cls._data_to_storage(data)
-        includes_foreign = cls._includes_foreign(storage_data.keys())
+        includes_foreign = cls._includes_foreign(list(storage_data.keys()))
 
         objs = cls.find(query)
         keys = objs.get_keys()
@@ -1241,7 +1241,7 @@ def _collect_refs(obj, fields=None):
     refs = []
     fields = fields or []
 
-    for field_name, field_object in obj._fields.items():
+    for field_name, field_object in list(obj._fields.items()):
 
         # Skip if not foreign field
         if not field_object._is_foreign:

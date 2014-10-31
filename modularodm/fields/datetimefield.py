@@ -5,6 +5,7 @@ import datetime
 from modularodm import signals
 from modularodm.fields import Field
 from modularodm.validators import validate_datetime
+import collections
 
 
 DEFAULT_NOW = datetime.datetime.utcnow
@@ -13,7 +14,7 @@ DEFAULT_NOW = datetime.datetime.utcnow
 def default_or_callable(value):
     if value is True:
         return DEFAULT_NOW
-    if callable(value):
+    if isinstance(value, collections.Callable):
         return value
     raise ValueError('Value must be True or callable')
 

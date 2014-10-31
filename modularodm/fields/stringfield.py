@@ -3,5 +3,5 @@ from ..validators import validate_string
 
 class StringField(Field):
 
-    data_type = basestring
+    data_type = str
     validate = validate_string
