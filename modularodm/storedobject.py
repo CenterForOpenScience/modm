@@ -219,7 +219,7 @@ class StoredObject(object):
     queue = WriteQueue()
 
     def __init__(self, **kwargs):
-
+        self.remove = lambda: self.remove_one(self)
         # Crash if abstract
         if self._is_abstract:
             raise TypeError('Cannot instantiate abstract schema')

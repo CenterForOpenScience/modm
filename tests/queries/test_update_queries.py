@@ -68,6 +68,15 @@ class UpdateQueryTestCase(ModularOdmTestCase):
             4
         )
 
+    def test_remove_on_instance(self):
+        """ calling remove on an instance removes the instance """
+        f = self.Foo.find()[0]
+        f.remove()
+        self.assertEqual(
+            self.Foo.find().count(),
+            4
+        )
+
     def test_remove_one(self):
         """ Given a primary key, remove the referenced object. """
         self.Foo.remove_one(Q('_id', 'eq', 2))
