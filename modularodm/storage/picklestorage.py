@@ -258,7 +258,7 @@ class PickleStorage(Storage):
 
         """
         if query is None:
-            for key, value in self.store.items():
+            for key, value in list(self.store.items()):
                 yield value
         else:
             for key, value in list(self.store.items()):

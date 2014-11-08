@@ -47,7 +47,7 @@ class Field(object):
 
     def _prepare_validators(self, _validate):
 
-        if hasattr(_validate, '__iter__'):
+        if hasattr(_validate, '__iter__') and not hasattr(_validate, 'strip'):
 
             # List of callable validators
             validate = []
@@ -122,12 +122,12 @@ class Field(object):
         # Field-level validation
         cls = self.__class__
         if hasattr(cls, 'validate') and \
-                self.validate != False:
+                self.validate != False:  #TODO(fabianvf)
             cls.validate(value)
 
         # Schema-level validation
         if self._validate and hasattr(self, 'validate'):
-            if hasattr(self.validate, '__iter__'):
+            if hasattr(self.validate, '__iter__') and not hasattr(self.validate,'strip'):
                 for validator in self.validate:
                     validator(value)
             elif hasattr(self.validate, '__call__'):

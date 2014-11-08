@@ -54,7 +54,7 @@ def with_proxies(proxy_map, get_key):
 
     """
     def wrapper(cls):
-        for label, ProxiedClass in proxy_map.items():
+        for label, ProxiedClass in list(proxy_map.items()):
             proxy = proxy_factory(cls, label, ProxiedClass, get_key)
             setattr(cls, label, proxy)
         return cls

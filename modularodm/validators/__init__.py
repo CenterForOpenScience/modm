@@ -9,7 +9,9 @@ from bson import ObjectId
 class Validator(object):
 
     def __eq__(self, other):
-        return self.__dict__ == other.__dict__
+        if isinstance(other, Validator):
+            return self.__dict__ == other.__dict__
+        return NotImplemented
 
 class TypeValidator(Validator):
 

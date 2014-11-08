@@ -5,6 +5,7 @@ import os
 import pymongo
 import unittest
 import uuid
+import six
 
 from modularodm import StoredObject
 from modularodm.storage import MongoStorage, PickleStorage, EphemeralStorage
@@ -113,9 +114,11 @@ class MultipleBackendMeta(type):
 
 
 
+
+@six.add_metaclass(MultipleBackendMeta)
 class ModularOdmTestCase(unittest.TestCase):
 
-    __metaclass__ = MultipleBackendMeta
+    # __metaclass__ = MultipleBackendMeta
     __test__ = False
 
     # Setup

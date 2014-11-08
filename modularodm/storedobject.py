@@ -875,8 +875,8 @@ class StoredObject(object):
 
         if item in self.__backrefs:
             backrefs = []
-            for parent, rest0 in self.__backrefs[item].items():
-                for field, rest1 in rest0.items():
+            for parent, rest0 in list(self.__backrefs[item].items()):
+                for field, rest1 in list(rest0.items()):
                     backrefs.extend([
                         (key, parent)
                         for key in rest1
