@@ -19,10 +19,10 @@ def thaw(value):
 class FrozenDict(collections.Mapping):
     """ Immutable dictionary. """
     def __init__(self, **kwargs):
-        self.__data = {key : freeze(value) for key, value in kwargs.items()}
+        self.__data = {key : freeze(value) for key, value in list(kwargs.items())}
 
     def thaw(self):
-        return {key : thaw(value) for key, value in self.__data.items()}
+        return {key : thaw(value) for key, value in list(self.__data.items())}
 
     def __eq__(self, other):
         if not isinstance(other, FrozenDict):

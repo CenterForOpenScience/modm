@@ -3,6 +3,8 @@
 import os
 import copy
 
+import six
+
 from .base import Storage, KeyExistsException
 from ..query.queryset import BaseQuerySet
 from ..query.query import QueryGroup
@@ -183,7 +185,7 @@ class PickleStorage(Storage):
     def update(self, query, data):
         data = copy.deepcopy(data)
         for pk in self.find(query, by_pk=True):
-            for key, value in data.items():
+            for key, value in list(data.items()):
                 self.store[pk][key] = value
 
     def get(self, primary_name, key):
@@ -258,10 +260,10 @@ class PickleStorage(Storage):
 
         """
         if query is None:
-            for key, value in self.store.iteritems():
+            for key, value in list(self.store.items()):
                 yield value
         else:
-            for key, value in self.store.items():
+            for key, value in list(self.store.items()):
                 if self._match(value, query):
                     if kwargs.get('by_pk'):
                         yield key

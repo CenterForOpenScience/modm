@@ -117,7 +117,7 @@ class StorageMeta(abc.ABCMeta):
     def __new__(mcs, name, bases, dct):
 
         # Decorate methods
-        for key, value in dct.items():
+        for key, value in list(dct.items()):
             if hasattr(value, '__call__') \
                     and not isinstance(value, type) \
                     and not key.startswith('_'):

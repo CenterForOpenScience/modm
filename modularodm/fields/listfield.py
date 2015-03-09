@@ -5,6 +5,7 @@ import copy
 from modularodm import signals
 from ..fields import Field
 from ..validators import validate_list
+import collections
 
 
 class ListField(Field):
@@ -29,7 +30,7 @@ class ListField(Field):
         # Descriptor data is this type of list object, instantiated as our
         # default
         if self._default:
-            default = self._default() if callable(self._default) else self._default
+            default = self._default() if isinstance(self._default, collections.Callable) else self._default
             if not hasattr(default, '__iter__') or isinstance(default, dict):
                 raise TypeError(
                     'Default value for list fields must be a list; received {0}'.format(
@@ -39,14 +40,12 @@ class ListField(Field):
         else:
             default = None
 
-        #if (self._default
-        #    and not hasattr(self._default, '__iter__')
-        #    or isinstance(self._default, dict)):
-        #    raise TypeError(
-        #        'Default value for list fields must be a list; received {0}'.format(
-        #            type(self._default)
-        #        )
-        #    )
+        if (self._default and hasattr(self._default, '__iter__') and hasattr(self._default, 'strip')):
+            raise TypeError(
+                'Default value for list fields must be a list; received {0}'.format(
+                    type(self._default)
+                )
+            )
 
         # Default is a callable that returns an empty instance of the list class
         # Avoids the need to deepcopy default values for lists, which will break
@@ -66,7 +65,7 @@ class ListField(Field):
         self._pre_set(instance, safe=safe)
         # if isinstance(value, self._default.__class__):
         #     self.data[instance] = value
-        if hasattr(value, '__iter__'):
+        if hasattr(value, '__iter__') and not hasattr(value, 'strip'):
             if literal:
                 self.data[instance] = self._list_class(value, base_class=self._field_instance.base_class, literal=True)
             else:

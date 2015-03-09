@@ -229,7 +229,7 @@ class MongoStorage(Storage):
         # Field "_id" shouldn't appear in both search and update queries; else
         # MongoDB will raise a "Mod on _id not allowed" error
         if '_id' in mongo_query:
-            update_data = {k: v for k, v in data.items() if k != '_id'}
+            update_data = {k: v for k, v in list(data.items()) if k != '_id'}
         else:
             update_data = data
         update_query = {'$set': update_data}

@@ -9,7 +9,9 @@ from bson import ObjectId
 class Validator(object):
 
     def __eq__(self, other):
-        return self.__dict__ == other.__dict__
+        if isinstance(other, Validator):
+            return self.__dict__ == other.__dict__
+        return NotImplemented
 
 class TypeValidator(Validator):
 
@@ -43,7 +45,7 @@ class TypeValidator(Validator):
             )
         )
 
-validate_string = TypeValidator(basestring)
+validate_string = TypeValidator(str)
 validate_integer = TypeValidator(
     allowed_types=int,
     forbidden_types=bool
@@ -79,7 +81,7 @@ class RegexValidator(Validator):
             )
 
 # Adapted from Django URLValidator
-from urlparse import urlsplit, urlunsplit
+from urllib.parse import urlsplit, urlunsplit
 class URLValidator(RegexValidator):
     regex = re.compile(
         r'^(?:http|ftp)s?://'  # http:// or https://

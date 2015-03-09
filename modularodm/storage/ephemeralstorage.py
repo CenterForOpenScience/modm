@@ -1,5 +1,5 @@
-from picklestorage import PickleStorage
-from StringIO import StringIO
+from .picklestorage import PickleStorage
+from io import BytesIO
 try:
     import cpickle as pickle
 except ImportError:
@@ -8,7 +8,7 @@ except ImportError:
 class EphemeralStorage(PickleStorage):
     def __init__(self, *args, **kwargs):
         self.store = {}
-        self.fp = StringIO()
+        self.fp = BytesIO()
 
     def flush(self):
         pickle.dump(self.store, self.fp, -1)

@@ -270,7 +270,6 @@ class ListValidatorTestCase(ModularOdmTestCase):
             self.test_object.save()
 
     def test_string(self):
-
         self.test_object.field = 'I am a string'
         with self.assertRaises(ValidationTypeError):
             self.test_object.save()

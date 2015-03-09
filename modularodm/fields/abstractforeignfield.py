@@ -31,7 +31,7 @@ class AbstractForeignField(BaseForeignField):
 
         if value is None:
             return None
-        if not hasattr(value, '__iter__'):
+        if not hasattr(value, '__iter__') or hasattr(value, 'strip'):
             value = (value._primary_key, value._name)
         return (
             self.get_primary_field(value[1])\

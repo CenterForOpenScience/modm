@@ -5,10 +5,11 @@ import copy
 from modularodm import exceptions
 from modularodm.query.querydialect import DefaultQueryDialect as Q
 from .lists import List
+import collections
 
 
 def print_arg(arg):
-    if isinstance(arg, basestring):
+    if isinstance(arg, str):
         return '"' + arg + '"'
     return arg
 
@@ -25,7 +26,7 @@ class Field(object):
     def __repr__(self):
         return '{cls}({kwargs})'.format(
             cls=self.__class__.__name__,
-            kwargs=', '.join('{}={}'.format(key, print_arg(val)) for key, val in self._kwargs.items())
+            kwargs=', '.join('{}={}'.format(key, print_arg(val)) for key, val in list(self._kwargs.items()))
         )
 
     def subscribe(self, sender=None):
@@ -34,7 +35,7 @@ class Field(object):
     def _to_comparable(self):
         return {
             k : v
-            for k, v in self.__dict__.items()
+            for k, v in list(self.__dict__.items())
             if k not in ['data', '_translators', '_schema_class']
         }
 
@@ -46,7 +47,7 @@ class Field(object):
 
     def _prepare_validators(self, _validate):
 
-        if hasattr(_validate, '__iter__'):
+        if hasattr(_validate, '__iter__') and not hasattr(_validate, 'strip'):
 
             # List of callable validators
             validate = []
@@ -121,12 +122,12 @@ class Field(object):
         # Field-level validation
         cls = self.__class__
         if hasattr(cls, 'validate') and \
-                self.validate != False:
+                self.validate != False:  #TODO(fabianvf)
             cls.validate(value)
 
         # Schema-level validation
         if self._validate and hasattr(self, 'validate'):
-            if hasattr(self.validate, '__iter__'):
+            if hasattr(self.validate, '__iter__') and not hasattr(self.validate,'strip'):
                 for validator in self.validate:
                     validator(value)
             elif hasattr(self.validate, '__call__'):
@@ -136,7 +137,7 @@ class Field(object):
         return True
 
     def _gen_default(self):
-        if callable(self._default):
+        if isinstance(self._default, collections.Callable):
             return self._default()
         return copy.deepcopy(self._default)
 

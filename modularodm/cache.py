@@ -50,5 +50,5 @@ class Cache(object):
     def clear_schema(self, schema):
         self.data.pop(schema, None)
 
-    def __nonzero__(self):
+    def __bool__(self):
         return bool(self.data)

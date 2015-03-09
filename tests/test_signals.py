@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 
-import mock
+try:
+    import mock
+except ImportError:
+    from unittest import mock
 import unittest
 from nose.tools import *
 

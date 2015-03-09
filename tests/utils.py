@@ -1,4 +1,7 @@
-import mock
+try:
+    import mock
+except ImportError:
+    from unittest import mock
 
 from modularodm import StoredObject, fields, storage
 from modularodm.translators import DefaultTranslator

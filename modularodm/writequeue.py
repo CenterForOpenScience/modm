@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 class WriteAction(object):
 
     def __init__(self, method, *args, **kwargs):
-        if not callable(method):
+        if not isinstance(method, collections.Callable):
             raise ValueError('Argument `method` must be callable')
         self.method = method
         # Note: `args` and `kwargs` must not be mutated after an action is
@@ -62,7 +62,7 @@ class WriteQueue(object):
         self.active = False
         self.actions = collections.deque()
 
-    def __nonzero__(self):
+    def __bool__(self):
         return bool(self.actions)
 
 

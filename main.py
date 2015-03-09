@@ -253,45 +253,45 @@ Blog.remove(Q('title', 'startswith', 'tbd'))
 # print 'after rm', res.count()
 
 Tag.update(Q('count', 'startswith', 'count_'), {'count' : 'shutup'})
-print tag1.count
+print(tag1.count)
 
 # import pdb; pdb.set_trace()
 
 # print 'here', [(r.misc, r.misc2) for r in res]
 
 res = Tag.find(Q('count', 'eq', 'count_1'))
-print 'here', res.count(), list(res)
+print('here', res.count(), list(res))
 
 res = Tag.find(~Q('count', 'eq', 'count_1'))
-print 'here', res.count(), list(res)
+print('here', res.count(), list(res))
 
 res = Tag.find(Q('misc', 'startswith', 'foo'))
-print 'here', res.count(), list(res)
+print('here', res.count(), list(res))
 
 res = Tag.find(Q('misc', 'endswith', 'bar'))
-print 'here', res.count(), list(res)
+print('here', res.count(), list(res))
 
 # todo: alias to in
 res = Tag.find(Q('keywords', 'eq', 'keywd1'))
-print 'here', res.count(), list(res)
+print('here', res.count(), list(res))
 
 res = Tag.find(Q('keywords', 'eq', 'keywd2'))
-print 'here', res.count(), list(res)
+print('here', res.count(), list(res))
 
 res = Tag.find(Q('keywords', 'eq', 'keywd3'))
-print 'here', res.count(), list(res)
+print('here', res.count(), list(res))
 
 # Compound query
 res = Tag.find(Q('misc', 'startswith', 'foo'), Q('keywords', 'eq', 'keywd1'))
-print 'here', res.count(), list(res)
+print('here', res.count(), list(res))
 
 # Query by foreign key
 res = Blog.find(Q('tag', 'eq', tag1))
-print 'here', res.count(), list(res)
+print('here', res.count(), list(res))
 
 # Query by foreign list
 res = Blog.find(Q('tags', 'eq', tag1))
-print 'here', res.count(), list(res)
+print('here', res.count(), list(res))
 
 # # Test deleting a tag
 #

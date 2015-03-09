@@ -13,11 +13,14 @@ class List(list):
 
         value = value or []
         self._base_class = kwargs.get('base_class', None)
-
+        if isinstance(value, str):
+            import ipdb; ipdb.set_trace()
         if literal:
             super(List, self).__init__(value)
         else:
             super(List, self).__init__()
+            if hasattr(value, 'strip'):
+                raise TypeError
             self.extend(value)
 
 

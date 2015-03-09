@@ -5,7 +5,7 @@ from modularodm.fields import ForeignField, IntegerField
 from tests.base import ModularOdmTestCase
 
 
-class LazyLoadTestCase(ModularOdmTestCase):
+class LazyLoadTestCase_Test(ModularOdmTestCase):
 
     def define_objects(self):
 
