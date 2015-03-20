@@ -1,5 +1,7 @@
+import mock
+from nose.tools import *  # noqa
+
 from modularodm import StoredObject
-from modularodm.storedobject import ContextLogger
 from modularodm.fields import ForeignField, IntegerField
 
 from tests.base import ModularOdmTestCase
@@ -18,28 +20,14 @@ class LazyLoadTestCase(ModularOdmTestCase):
 
         return Foo, Bar
 
-    def test_create_one_object(self):
-
-        with ContextLogger() as context_logger:
-
-            bar = self.Bar(_id=1)
-            bar.save()
-
-            report = context_logger.report()
-
-        self.assertEqual(report[('bar', 'insert')][0], 1)
-
     def test_load_object_in_cache(self):
 
         bar = self.Bar(_id=1)
         bar.save()
 
-        with ContextLogger() as context_logger:
-
+        with mock.patch.object(self.Bar._storage[0], 'get') as mock_load:
             self.Bar.load(1)
-            report = context_logger.report()
-
-        self.assertNotIn(('bar', 'load'), report)
+        assert_false(mock_load.called)
 
     def test_load_object_not_in_cache(self):
 
@@ -48,16 +36,13 @@ class LazyLoadTestCase(ModularOdmTestCase):
 
         self.Bar._clear_caches(1)
 
-        with ContextLogger() as context_logger:
-
+        with mock.patch.object(self.Bar._storage[0], 'get') as mock_load:
             self.Bar.load(1)
-            report = context_logger.report()
-
-        self.assertEqual(report[('bar', 'get')][0], 1)
+        assert_true(mock_load.called)
 
     def test_create_several_objects(self):
 
-        with ContextLogger() as context_logger:
+        with mock.patch.object(self.Bar._storage[0], 'insert') as mock_insert:
 
             bar1 = self.Bar(_id=1)
             bar2 = self.Bar(_id=2)
@@ -71,9 +56,7 @@ class LazyLoadTestCase(ModularOdmTestCase):
             bar4.save()
             bar5.save()
 
-            report = context_logger.report()
-
-        self.assertEqual(report[('bar', 'insert')][0], 5)
+        assert_equal(len(mock_insert.call_args_list), 5)
 
     def test_create_linked_objects(self):
 
@@ -85,16 +68,15 @@ class LazyLoadTestCase(ModularOdmTestCase):
         bar2.save()
         bar3.save()
 
-        with ContextLogger() as context_logger:
+        with mock.patch.object(self.Foo._storage[0], 'insert') as mock_insert:
+            with mock.patch.object(self.Bar._storage[0], 'update') as mock_update:
 
-            foo1 = self.Foo(_id=4)
-            foo1.my_bar = [bar1, bar2, bar3]
-            foo1.save()
+                foo1 = self.Foo(_id=4)
+                foo1.my_bar = [bar1, bar2, bar3]
+                foo1.save()
 
-            report = context_logger.report()
-
-        self.assertEqual(report[('foo', 'insert')][0], 1)
-        self.assertEqual(report[('bar', 'update')][0], 3)
+        assert_equal(len(mock_insert.call_args_list), 1)
+        assert_equal(len(mock_update.call_args_list), 3)
 
     def test_load_linked_objects_not_in_cache(self):
 
@@ -112,11 +94,9 @@ class LazyLoadTestCase(ModularOdmTestCase):
 
         StoredObject._clear_caches()
 
-        with ContextLogger() as context_logger:
+        with mock.patch.object(self.Foo._storage[0], 'get') as mock_foo_get:
+            with mock.patch.object(self.Bar._storage[0], 'get') as mock_bar_get:
+                self.Foo.load(4)
 
-            self.Foo.load(4)
-
-            report = context_logger.report()
-
-        self.assertEqual(report[('foo', 'get')][0], 1)
-        self.assertNotIn(('bar', 'get'), report)
+        assert_true(mock_foo_get.called)
+        assert_false(mock_bar_get.called)

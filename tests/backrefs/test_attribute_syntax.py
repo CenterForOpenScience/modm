@@ -1,13 +1,13 @@
+import mock
 import unittest
+from nose.tools import *  # noqa
 
 from modularodm import fields
-from modularodm.storedobject import ContextLogger
 from modularodm import StoredObject
 from modularodm.exceptions import ModularOdmException
 
-from tests.base import (
-    ModularOdmTestCase
-)
+from tests.base import ModularOdmTestCase
+
 
 class OneToManyFieldTestCase(ModularOdmTestCase):
 
@@ -72,26 +72,20 @@ class OneToManyFieldTestCase(ModularOdmTestCase):
     def test_dunder_br_laziness(self):
         StoredObject._clear_caches()
 
-        with ContextLogger() as c:
+        with mock.patch.object(self.Foo._storage[0], 'get') as mock_find:
             # get the Bar object
             bar = self.Bar.find_one()
             # access the ForeignList
             bar.foo__my_foos
 
-            # Two calls so far - .find_one() and .find()
-            self.assertNotIn(
-                'foo',
-                [k[0] for k, v in c.report().iteritems()],
-            )
+            assert_false(mock_find.called)
 
             # access a member of the ForeignList, forcing that member to load
             bar.foo__my_foos[0]
 
             # now there should be a call to Foo.get()
-            self.assertEqual(
-                c.report()[('foo', 'get')][0],
-                1
-            )
+            assert_true(mock_find.called)
+
 
 class OneToManyAbstractFieldTestCase(ModularOdmTestCase):
 
@@ -164,24 +158,16 @@ class OneToManyAbstractFieldTestCase(ModularOdmTestCase):
 
     def test_dunder_br_laziness(self):
         StoredObject._clear_caches()
-
-        with ContextLogger() as c:
+        with mock.patch.object(self.Foo._storage[0], 'get') as mock_find:
             # get the Bar object
             bar = self.Bar.find_one()
             # access the ForeignList
             bar.foo__my_foos
 
-            # Two calls so far - .find_one() and .find()
-            self.assertNotIn(
-                'foo',
-                [k[0] for k, v in c.report().iteritems()],
-            )
+            assert_false(mock_find.called)
 
             # access a member of the ForeignList, forcing that member to load
             bar.foo__my_foos[0]
 
             # now there should be a call to Foo.get()
-            self.assertEqual(
-                c.report()[('foo', 'get')][0],
-                1
-            )
+            assert_true(mock_find.called)

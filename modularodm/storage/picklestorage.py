@@ -136,14 +136,14 @@ class PickleStorage(Storage):
 
     QuerySet = PickleQuerySet
 
-    def __init__(self, collection_name,  prefix='db_', ext='pkl'):
+    def __init__(self, collection_name,  prefix='db_', ext='pkl', log_level=None):
         """Build pickle file name and load data if exists.
 
         :param collection_name: Collection name
         :param prefix: File prefix.
         :param ext: File extension.
-
         """
+        super(PickleStorage, self).__init__(log_level)
         # Build filename
         filename = collection_name + '.' + ext
         if prefix:

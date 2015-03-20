@@ -2,113 +2,36 @@ import abc
 import six
 import time
 import random
-import itertools
+import logging
 from functools import wraps
 
 from ..translators import DefaultTranslator
+
+
+logger = logging.getLogger(__name__)
 
 
 class KeyExistsException(Exception):
     pass
 
 
-class Logger(object):
-
-    def __init__(self):
-
-        self.listening = False
-        self.events = []
-        self.xtra = []
-
-    def listen(self, xtra=None):
-
-        self.xtra.append(xtra)
-
-        if self.listening:
-            return False
-
-        self.listening = True
-        self.events = []
-        return True
-
-    def record_event(self, event):
-
-        if self.listening:
-            self.events.append(event)
-
-    def report(self, sort_func=None):
-
-        out = {}
-
-        if sort_func is None:
-            sort_func = lambda e: e.func.__name__
-
-        heard = sorted(self.events, key=sort_func)
-
-        for key, group in itertools.groupby(heard, sort_func):
-            group = list(group)
-            num_events = len(group)
-            total_time = sum([event.elapsed_time for event in group])
-            out[key] = (num_events, total_time)
-
-        return out
-
-    def pop(self):
-
-        self.xtra.pop()
-
-    def clear(self):
-
-        self.listening = False
-        self.events = []
-
-
-class LogEvent(object):
-
-    def __init__(self, func, start_time, stop_time, xtra=None):
-
-        self.func = func
-        self.start_time = start_time
-        self.stop_time = stop_time
-        self.elapsed_time = stop_time - start_time
-        self.xtra = xtra
-
-    def __repr__(self):
-
-        return 'LogEvent("{func}", {start_time}, {stop_time}, {xtra})'.format(
-            **self.__dict__
-        )
-
-
 def logify(func):
-
     @wraps(func)
-    def wrapped(this, *args, **kwargs):
-
-        # Note: Copy value of `this.logger.listening` here in the event that
-        # this value is changed externally during the decorated function call.
-        # TODO: Verify that this produces valid output for concurrent requests
-        listening = this.logger.listening
-
-        if listening:
-            start_time = time.time()
-
-        out = func(this, *args, **kwargs)
-
-        if listening:
-            stop_time = time.time()
-            xtra = this.logger.xtra[-1]
-            this.logger.record_event(
-                LogEvent(
-                    func,
-                    start_time,
-                    stop_time,
-                    xtra
-                )
+    def wrapped(self, *args, **kwargs):
+        if self.log_level is None:
+            return func(self, *args, **kwargs)
+        start_time = time.time()
+        ret = func(self, *args, **kwargs)
+        stop_time = time.time()
+        logger.log(
+            self.log_level,
+            'Called {0} on collection {1!r}: {2} s'.format(
+                func.__name__,
+                self,
+                stop_time - start_time,
             )
-
-        return out
-
+        )
+        return ret
     return wrapped
 
 
@@ -134,7 +57,10 @@ class Storage(object):
     find_all methods.
     """
     translator = DefaultTranslator()
-    logger = Logger()
+    log_level = logging.INFO
+
+    def __init__(self, log_level=None):
+        self.log_level = log_level
 
     def _ensure_index(self, key):
         pass

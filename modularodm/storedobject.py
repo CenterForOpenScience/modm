@@ -19,36 +19,6 @@ from .writequeue import WriteQueue, WriteAction
 logger = logging.getLogger(__name__)
 
 
-class ContextLogger(object):
-
-    @staticmethod
-    def sort_func(e):
-        return (e.xtra._name if e.xtra else None, e.func.__name__)
-
-    def report(self, sort_func=None):
-        return self.logger.report(sort_func or self.sort_func)
-
-    def __init__(self, log_level=None, xtra=None, sort_func=None):
-        self.log_level = log_level
-        self.xtra = xtra
-        self.sort_func = sort_func or self.sort_func
-        self.logger = Storage.logger
-
-    def __enter__(self):
-        self.listening = self.logger.listen(self.xtra)
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        if self.listening:
-            report = self.logger.report(
-                lambda e: (e.xtra._name if e.xtra else None, e.func.__name__)
-            )
-            if self.log_level is not None:
-                logging.log(self.log_level, report)
-            self.logger.clear()
-        self.logger.pop()
-
-
 def deref(data, keys, missing=None):
     if keys[0] in data:
         if len(keys) == 1:
@@ -71,19 +41,6 @@ def flatten_backrefs(data, stack=None):
     return out
 
 
-def log_storage(func):
-
-    @wraps(func)
-    def wrapped(this, *args, **kwargs):
-
-        cls = this if isinstance(this, type) else type(this)
-
-        with ContextLogger(log_level=this._log_level, xtra=cls):
-            return func(this, *args, **kwargs)
-
-    return wrapped
-
-
 def warn_if_detached(func):
     """ Warn if self / cls is detached. """
     @wraps(func)
@@ -101,8 +58,7 @@ def has_storage(func):
     @wraps(func)
     def wrapped(*args, **kwargs):
         me = args[0]
-        if not hasattr(me, '_storage') or \
-                not me._storage:
+        if not hasattr(me, '_storage') or not me._storage:
             raise exceptions.ImproperConfigurationError(
                 'No storage backend attached to schema <{0}>.'
                     .format(me._name.upper())
@@ -164,7 +120,6 @@ class ObjectMeta(type):
 
         cls._is_optimistic = my_meta.get('optimistic', False)
         cls._is_abstract = my_meta.get('abstract', False)
-        cls._log_level = my_meta.get('log_level', None)
         cls._version_of = my_meta.get('version_of', None)
         cls._version = my_meta.get('version', 1)
         cls._record_validators = my_meta.get('validators', [])
@@ -531,7 +486,6 @@ class StoredObject(object):
 
     @classmethod
     @has_storage
-    @log_storage
     def load(cls, key=None, data=None, _is_loaded=True):
         """Get a record by its primary key.
         """
@@ -588,7 +542,6 @@ class StoredObject(object):
         :param verbose: Print detailed info
         :param dry_run: Dry run; make no changes if true
         :param rm_refs: Remove references on deleted fields
-
         """
         if verbose:
             logging.basicConfig(format='%(levelname)s %(filename)s: %(message)s',
@@ -735,7 +688,6 @@ class StoredObject(object):
             raise exceptions.DatabaseError('Record must be loaded.')
 
     @has_storage
-    @log_storage
     def _optimistic_insert(self):
         self._primary_key = self._storage[0]._optimistic_insert(
             self._primary_name,
@@ -750,7 +702,6 @@ class StoredObject(object):
             validator(self)
 
     @has_storage
-    @log_storage
     def save(self, force=False):
         """Save a record.
 
@@ -946,7 +897,6 @@ class StoredObject(object):
 
     @classmethod
     @has_storage
-    @log_storage
     def find(cls, query=None, **kwargs):
         cls._process_query(query)
         return cls._storage[0].QuerySet(
@@ -956,7 +906,6 @@ class StoredObject(object):
 
     @classmethod
     @has_storage
-    @log_storage
     def find_one(cls, query=None, **kwargs):
         cls._process_query(query)
         stored_data = cls._storage[0].find_one(query, **kwargs)

@@ -172,7 +172,8 @@ class MongoStorage(Storage):
     """
     QuerySet = MongoQuerySet
 
-    def __init__(self, db, collection):
+    def __init__(self, db, collection, log_level=None):
+        super(MongoStorage, self).__init__(log_level)
         self.db = db
         self.collection = collection
 
@@ -212,7 +213,7 @@ class MongoStorage(Storage):
         )
 
     def get(self, primary_name, key):
-        return self.store.find_one({primary_name : key})
+        return self.store.find_one({primary_name: key})
 
     def insert(self, primary_name, key, value):
         if primary_name not in value:
@@ -249,5 +250,4 @@ class MongoStorage(Storage):
         pass
 
     def __repr__(self):
-        return self.find()
-
+        return repr(self.store)
