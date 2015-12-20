@@ -159,3 +159,15 @@ class MaxLengthValidator(BaseValidator):
     clean = lambda self, x: len(x)
     message = 'Ensure this value has length of at most {limit_value} (it has length {show_value}).'
     code = 'max_length'
+
+
+class ValueNotEmptyValidator(BaseValidator):
+
+    compare = lambda self, a, b: a == b
+    clean = lambda self, x: x.strip()
+    message = 'Ensure this value is not empty.'
+    code = 'not_empty'
+
+    def __init__(self):
+        self.limit_value = ''
+        super(ValueNotEmptyValidator, self).__init__(self.limit_value)
