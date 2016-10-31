@@ -1,7 +1,7 @@
 from modularodm import StoredObject
 from modularodm.exceptions import ValidationValueError
 from modularodm.fields import IntegerField, StringField
-from modularodm.validators import MaxLengthValidator, MinLengthValidator
+from modularodm.validators import MaxLengthValidator, MinLengthValidator, ValueNotEmptyValidator
 
 from tests.base import ModularOdmTestCase
 
@@ -17,6 +17,10 @@ class StringValidatorTestCase(ModularOdmTestCase):
             test_field_min = StringField(
                 list=False,
                 validate=[MinLengthValidator(5), ]
+            )
+            test_field_empty = StringField(
+                list=False,
+                validate=[ValueNotEmptyValidator(), ]
             )
         self.test_object = Foo(_id=0)
         return Foo,
@@ -37,6 +41,15 @@ class StringValidatorTestCase(ModularOdmTestCase):
             self.test_object.save()
 
         self.test_object.test_field_min = 'abcdefg'
+        self.test_object.save()
+
+    def test_value_not_empty_string_validator(self):
+
+        self.test_object.test_field_empty = ''
+        with self.assertRaises(ValidationValueError):
+            self.test_object.save()
+
+        self.test_object.test_field_empty = 'not empty'
         self.test_object.save()
 
 
