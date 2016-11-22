@@ -43,6 +43,8 @@ class AbstractForeignField(BaseForeignField):
 
         if value is None:
             return None
+        if not isinstance(value, (tuple, list)) or len(value) != 2:
+            raise ValueError('Value must be a list or tuple with a length of 2')
         return (
             self.get_primary_field(value[1])\
                 .from_storage(value[0], translator),
