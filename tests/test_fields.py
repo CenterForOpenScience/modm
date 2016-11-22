@@ -5,6 +5,7 @@ import unittest
 from nose.tools import *  # PEP8 asserts
 
 from modularodm import StoredObject, fields, storage, exceptions
+from tests.base import ModularOdmTestCase
 
 
 def set_datetime():
@@ -149,6 +150,31 @@ class TestForeignField(unittest.TestCase):
             Child._fields['parent'].base_class,
             self.Parent
         )
+
+
+class TestStringField(ModularOdmTestCase):
+    def define_objects(self):
+
+        class Foo(StoredObject):
+            _id = fields.IntegerField()
+            bar = fields.StringField()
+
+        return (Foo, )
+
+    def test_special_characters(self):
+        foo = self.Foo(_id=0)
+        foo.save()
+
+        values = (
+            'asdf.asdf',
+            'asdf$asdf',
+            r'''~!@#$%^&*()_+`-=[]{};':",./<>?\|'''
+        )
+        for value in values:
+            foo.bar = value
+            foo.save()
+            foo.reload()
+            assert_equal(foo.bar, value)
 
 
 if __name__ == '__main__':
