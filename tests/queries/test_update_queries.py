@@ -68,6 +68,23 @@ class UpdateQueryTestCase(ModularOdmTestCase):
             4
         )
 
+    def test_remove_all(self):
+        """ Given no query, remove requires an override to remove all objects. """
+        with self.assertRaises(ValueError):
+            self.Foo.remove()
+
+        self.assertEqual(
+            self.Foo.find().count(),
+            5
+        )
+
+        self.Foo.remove(remove_all=True)
+
+        self.assertEqual(
+            self.Foo.find().count(),
+            0
+        )
+
     def test_remove_one(self):
         """ Given a primary key, remove the referenced object. """
         self.Foo.remove_one(Q('_id', 'eq', 2))

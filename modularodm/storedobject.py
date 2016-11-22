@@ -1219,12 +1219,15 @@ class StoredObject(object):
 
     @classmethod
     @has_storage
-    def remove(cls, query=None):
+    def remove(cls, query=None, remove_all=False):
         """Remove objects by query.
 
         :param query: Query object
 
         """
+        if query is None and remove_all is not True:
+            raise ValueError('remove_all must be True to remove an entire collection')
+
         objs = cls.find(query)
 
         for obj in objs:

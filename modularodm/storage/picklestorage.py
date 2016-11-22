@@ -249,15 +249,19 @@ class PickleStorage(Storage):
         else:
             raise TypeError('Query must be a QueryGroup or Query object.')
 
-    def find(self, query=None, **kwargs):
-        if query is None:
-            for key, value in six.iteritems(self.store):
+    def find(self, query=None, by_pk=False, **kwargs):
+        # TODO: Making this a generator breaks it, since it can change
+        iterator = list(self.store.items())
+
+        if query is not None:
+            iterator = (
+                (key, value)
+                for key, value in iterator
+                if self._match(value, query)
+            )
+
+        for key, value in iterator:
+            if by_pk:
+                yield key
+            else:
                 yield value
-        else:
-            # TODO: Making this a generator breaks it, since it can change
-            for key, value in list(six.iteritems(self.store)):
-                if self._match(value, query):
-                    if kwargs.get('by_pk'):
-                        yield key
-                    else:
-                        yield value
